@@ -364,12 +364,12 @@ st.markdown("""<style>
 </style>""", unsafe_allow_html=True)
 
 # ----------------------------------------------------
-# 3. Supabase Auth 회원가입 및 로그인 모듈 (자동저장 지원)
+# 3. Supabase Auth 회원가입 및 로그인 모듈 (Smart-Paint 문구 적용)
 # ----------------------------------------------------
 if not st.session_state.logged_in:
     st.markdown("""<div class="noroo-header-box" style="text-align:center;">
         <span class="noroo-brand-name">MULTI-BRAND AUTO COLOR SYSTEM</span>
-        <h1 class="noroo-main-title">🔐 Supabase 보안 클라우드 로그인</h1>
+        <h1 class="noroo-main-title">🔐 Smart-Paint 클라우드 로그인</h1>
     </div>""", unsafe_allow_html=True)
     st.markdown("---")
 
@@ -380,7 +380,6 @@ if not st.session_state.logged_in:
         
         with auth_tab1:
             st.subheader("클라우드 로그인")
-            # ★ 핵심: 브라우저 자동저장을 유도하기 위해 HTML Form 구조 적용
             with st.form("login_form", clear_on_submit=False):
                 login_email = st.text_input("이메일 (Email)", key="login_email_input")
                 login_pw = st.text_input("비밀번호 (Password)", type="password", key="login_pw_input")
@@ -433,7 +432,7 @@ if not st.session_state.logged_in:
                                     "data": {"display_name": reg_name.strip()}
                                 }
                             })
-                            st.success("🎉 Supabase 클라우드에 성공적으로 회원등록 되었습니다! [로그인] 탭에서 로그인해 주세요.")
+                            st.success("🎉 Smart-Paint 클라우드에 성공적으로 회원등록 되었습니다! [로그인] 탭에서 로그인해 주세요.")
                         except Exception as e:
                             st.error(f"회원가입 실패: {e}")
                     else:
