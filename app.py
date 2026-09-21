@@ -297,27 +297,29 @@ def reset_workspace():
     for k in widget_keys:
         del st.session_state[k]
 
-# Custom CSS (상단 툴바/GitHub 로고/하단 모바일 배지 완전 차단 스타일 적용)
+# Custom CSS (모바일 사이드바 버튼은 유지하고 브랜딩 배지만 완벽 차단)
 st.markdown("""<style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     html, body, [class*="css"] {
         font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
     }
     
-    /* 모바일/데스크톱 Streamlit 헤더, 깃허브 Fork, 푸터, 로고 배지 완전 숨기기 */
-    #MainMenu {visibility: hidden !important; display: none !important;}
-    header {visibility: hidden !important; display: none !important;}
+    /* 사이드바 메뉴 버튼은 살리고, 브랜딩 배지/메뉴만 차단 */
+    #MainMenu {visibility: hidden !important;}
     footer {visibility: hidden !important; display: none !important;}
-    [data-testid="stHeader"] {display: none !important; height: 0 !important;}
-    [data-testid="stToolbar"] {display: none !important;}
+    [data-testid="stToolbar"] {visibility: hidden !important; display: none !important;}
     [data-testid="stDecoration"] {display: none !important;}
     [data-testid="stStatusWidget"] {display: none !important;}
     [class*="viewerBadge"] {display: none !important;}
     [class*="stAppDeployButton"] {display: none !important;}
     div[class*="viewerBadge"] {display: none !important;}
-    div[class*="stDecoration"] {display: none !important;}
     a[href*="streamlit.io"] {display: none !important;}
     button[title*="Streamlit"] {display: none !important;}
+    
+    /* 상단 헤더 영역 배경 투명화 및 높이 최소화 */
+    header[data-testid="stHeader"] {
+        background: transparent !important;
+    }
 
     .noroo-header-box {
         background: linear-gradient(135deg, #091936 0%, #003375 50%, #005BB5 100%);
