@@ -219,7 +219,7 @@ st.set_page_config(
 if "GEMINI_API_KEY" in st.secrets:
     api_key = st.secrets["GEMINI_API_KEY"]
 else:
-    st.error("⚠️ Stream মেয়াদ Secrets에 GEMINI_API_KEY가 설정되지 않았습니다.")
+    st.error("⚠️ Streamlit Secrets에 GEMINI_API_KEY가 설정되지 않았습니다.")
     st.stop()
 
 client = genai.Client(api_key=api_key)
@@ -464,7 +464,7 @@ if not st.session_state.logged_in:
                             user_meta = res.user.user_metadata
                             st.session_state.current_user = user_meta.get("display_name", res.user.email.split("@")[0])
                             
-                            # ★ 클라우드에 저장된 설정값(브랜드, 핸드폰) 덮어씌우기
+                            # ★ 클라우드에 저장된 사용자 고유 설정값(브랜드, 핸드폰) 불러오기 적용
                             saved_brand = user_meta.get("pref_brand")
                             if saved_brand in BRAND_CONFIGS:
                                 st.session_state.selected_brand_key = saved_brand
@@ -617,7 +617,7 @@ def db_delete_work(history_id, history_title):
             st.sidebar.error(f"삭제 오류: {e}")
 
 # ----------------------------------------------------
-# 5. 사이드바 구성 (저장 내역 불러오기 및 계정 관리 - 중복 제거)
+# 5. 사이드바 구성 (저장 내역 불러오기 및 계정 관리 - 중복설정창 완벽제거)
 # ----------------------------------------------------
 with st.sidebar:
     st.markdown(f"👤 **접속 계정**: `{st.session_state.current_user}`")
@@ -655,6 +655,7 @@ with st.sidebar:
                 st.session_state.color_name_input_field = loaded_color
                 
                 st.session_state.current_stage = selected_row["stage"]
+                # 불러오기 시 브랜드도 임시 변경
                 st.session_state.selected_brand_key = selected_row["brand"]
                 st.session_state.ai_result_text = selected_row["ai_result"]
                 try:
@@ -677,9 +678,20 @@ with st.sidebar:
         st.sidebar.success("✨ 새로운 작업 화면으로 초기화되었습니다.")
         st.rerun()
 
+# --- 현재 세션 값 매핑 (사이드바의 중복값 차단) ---
+p_brand_key = st.session_state.phone_brand_key
+p_model_key = st.session_state.phone_model_key
+
+# 안전장치: 혹시라도 기종 목록이 어긋나면 기본값 복구
+if p_model_key not in CAMERA_PROFILES.get(p_brand_key, {}):
+    p_brand_key = list(CAMERA_PROFILES.keys())[0]
+    p_model_key = list(CAMERA_PROFILES[p_brand_key].keys())[0]
+    st.session_state.phone_brand_key = p_brand_key
+    st.session_state.phone_model_key = p_model_key
+
 selected_brand = st.session_state.selected_brand_key
-selected_camera = f"{st.session_state.phone_brand_key} {st.session_state.phone_model_key}"
-selected_camera_profile = CAMERA_PROFILES[st.session_state.phone_brand_key][st.session_state.phone_model_key]
+selected_camera = f"{p_brand_key} {p_model_key}"
+selected_camera_profile = CAMERA_PROFILES[p_brand_key][p_model_key]
 
 # 메인 헤더
 st.markdown(f"""<div class="noroo-header-box">
@@ -691,7 +703,7 @@ st.markdown(f"""<div class="noroo-header-box">
 # ★ 모바일 전용 상단 설정 확인/변경 대시보드 (클라우드 동기화 추가) ★
 # ----------------------------------------------------
 st.write("")
-with st.expander(f"⚙️ 내 클라우드 설정: [{selected_brand}] | [{selected_camera}] (터치하여 변경)", expanded=False):
+with st.expander(f"⚙️ 내 설정 (클라우드 동기화): [{selected_brand}] | [{selected_camera}] (터치하여 변경)", expanded=False):
     col_mb1, col_mb2 = st.columns(2)
     
     with col_mb1:
@@ -715,22 +727,22 @@ with st.expander(f"⚙️ 내 클라우드 설정: [{selected_brand}] | [{select
 
     with col_mb2:
         st.markdown("##### 📱 스마트폰 카메라 보정 설정")
-        p_brand = st.selectbox("제조사 선택", list(CAMERA_PROFILES.keys()), index=list(CAMERA_PROFILES.keys()).index(st.session_state.phone_brand_key), key="main_p_brand_select")
-        p_models = list(CAMERA_PROFILES[p_brand].keys())
+        new_p_brand = st.selectbox("제조사 선택", list(CAMERA_PROFILES.keys()), index=list(CAMERA_PROFILES.keys()).index(st.session_state.phone_brand_key), key="main_p_brand_select")
+        p_models = list(CAMERA_PROFILES[new_p_brand].keys())
         
         curr_m_idx = p_models.index(st.session_state.phone_model_key) if st.session_state.phone_model_key in p_models else 0
-        p_model = st.selectbox("기종 선택", p_models, index=curr_m_idx, key="main_p_model_select")
+        new_p_model = st.selectbox("기종 선택", p_models, index=curr_m_idx, key="main_p_model_select")
         
-        if p_brand != st.session_state.phone_brand_key or p_model != st.session_state.phone_model_key:
-            st.session_state.phone_brand_key = p_brand
-            st.session_state.phone_model_key = p_model
+        if new_p_brand != st.session_state.phone_brand_key or new_p_model != st.session_state.phone_model_key:
+            st.session_state.phone_brand_key = new_p_brand
+            st.session_state.phone_model_key = new_p_model
             # ★ 변경 시 클라우드 프로필에 즉시 자동 저장
             if supabase_client:
-                try: supabase_client.auth.update_user({"data": {"pref_phone_brand": p_brand, "pref_phone_model": p_model}})
+                try: supabase_client.auth.update_user({"data": {"pref_phone_brand": new_p_brand, "pref_phone_model": new_p_model}})
                 except: pass
             st.rerun()
             
-        st.caption(f"🎯 **카메라 보정 알고리즘**: {CAMERA_PROFILES[p_brand][p_model]}")
+        st.caption(f"🎯 **카메라 보정 알고리즘**: {CAMERA_PROFILES[new_p_brand][new_p_model]}")
 
 st.markdown("---")
 
