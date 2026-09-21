@@ -207,9 +207,9 @@ if HAS_SUPABASE_LIB and "SUPABASE_URL" in st.secrets and "SUPABASE_KEY" in st.se
 valid_brands = list(BRAND_CONFIGS.keys())
 valid_phone_brands = list(CAMERA_PROFILES.keys())
 
-if "pref_brand" not in st.session_state: st.session_state.pref_brand = valid_brands[0]
-if "pref_phone_brand" not in st.session_state: st.session_state.pref_phone_brand = valid_phone_brands[0]
-if "pref_phone_model" not in st.session_state: st.session_state.pref_phone_model = list(CAMERA_PROFILES[st.session_state.pref_phone_brand].keys())[0]
+if "pref_brand" not in st.session_state: st.session_state["pref_brand"] = valid_brands[0]
+if "pref_phone_brand" not in st.session_state: st.session_state["pref_phone_brand"] = valid_phone_brands[0]
+if "pref_phone_model" not in st.session_state: st.session_state["pref_phone_model"] = list(CAMERA_PROFILES[st.session_state["pref_phone_brand"]].keys())[0]
 
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
 if "current_user" not in st.session_state: st.session_state.current_user = ""
@@ -217,7 +217,7 @@ if "user_email" not in st.session_state: st.session_state.user_email = ""
 
 if "current_stage" not in st.session_state: st.session_state.current_stage = 1
 if "color_name" not in st.session_state: st.session_state.color_name = ""
-if "color_name_input" not in st.session_state: st.session_state.color_name_input = "" # 입력창 키 전용 동기화 변수
+if "color_name_input" not in st.session_state: st.session_state.color_name_input = "" # 입력창 전용 Key
 if "target_img_bytes" not in st.session_state: st.session_state.target_img_bytes = None
 if "prev_sample_bytes" not in st.session_state: st.session_state.prev_sample_bytes = None
 if "temp_sample_bytes" not in st.session_state: st.session_state.temp_sample_bytes = None
@@ -225,6 +225,25 @@ if "recipe_table_df" not in st.session_state: st.session_state.recipe_table_df =
 if "ai_result_text" not in st.session_state: st.session_state.ai_result_text = ""
 if "show_next_btn" not in st.session_state: st.session_state.show_next_btn = False
 if "is_passed" not in st.session_state: st.session_state.is_passed = False
+
+# --- 클라우드 동기화 콜백 함수 ---
+def sync_brand_to_cloud():
+    if supabase_client and st.session_state.get("logged_in"):
+        try: supabase_client.auth.update_user({"data": {"pref_brand": st.session_state["pref_brand"]}})
+        except Exception: pass
+
+def sync_phone_brand_to_cloud():
+    # 브랜드가 변경되면 기종도 첫번째로 안전 자동 변경
+    models = list(CAMERA_PROFILES[st.session_state["pref_phone_brand"]].keys())
+    st.session_state["pref_phone_model"] = models[0]
+    if supabase_client and st.session_state.get("logged_in"):
+        try: supabase_client.auth.update_user({"data": {"pref_phone_brand": st.session_state["pref_phone_brand"], "pref_phone_model": st.session_state["pref_phone_model"]}})
+        except Exception: pass
+
+def sync_phone_model_to_cloud():
+    if supabase_client and st.session_state.get("logged_in"):
+        try: supabase_client.auth.update_user({"data": {"pref_phone_brand": st.session_state["pref_phone_brand"], "pref_phone_model": st.session_state["pref_phone_model"]}})
+        except Exception: pass
 
 def go_next_stage():
     st.session_state.current_stage += 1
@@ -236,10 +255,9 @@ def go_next_stage():
         st.session_state.temp_sample_bytes = None
 
 def reset_workspace():
-    """작업내역 초기화 (입력창도 함께 비움)"""
     st.session_state.current_stage = 1
     st.session_state.color_name = ""
-    st.session_state.color_name_input = "" # 입력창 값도 원천 초기화
+    st.session_state.color_name_input = ""
     st.session_state.target_img_bytes = None
     st.session_state.prev_sample_bytes = None
     st.session_state.temp_sample_bytes = None
@@ -262,11 +280,20 @@ st.markdown("""<style>
     [data-testid="stToolbar"] {display: none !important;}
     .stAppDeployButton {display: none !important;}
     [class*="viewerBadge"] {display: none !important;}
+    iframe {display: none !important;}
 
     .noroo-header-box {
         background: linear-gradient(135deg, #091936 0%, #003375 50%, #005BB5 100%);
         padding: 22px 28px; border-radius: 16px; color: #FFFFFF;
         box-shadow: 0 8px 24px rgba(0, 51, 117, 0.18);
+    }
+    .settings-card-box {
+        background-color: #F1F5F9;
+        border: 2px solid #CBD5E1;
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-top: 15px;
+        margin-bottom: 20px;
     }
     .noroo-brand-name { font-size: 13px; font-weight: 700; color: #82B1FF; letter-spacing: 2px; }
     .noroo-main-title { font-size: 23px; font-weight: 800; color: #FFFFFF; margin: 4px 0 0 0; }
@@ -313,13 +340,13 @@ if not st.session_state.logged_in:
                             user_meta = res.user.user_metadata
                             st.session_state.current_user = user_meta.get("display_name", res.user.email.split("@")[0])
                             
-                            # 내 프로필에서 저장된 설정 불러오기
+                            # ★ 내 프로필에 마지막으로 저장된 설정 불러오기
                             if user_meta.get("pref_brand") in valid_brands: 
-                                st.session_state.pref_brand = user_meta.get("pref_brand")
+                                st.session_state["pref_brand"] = user_meta.get("pref_brand")
                             if user_meta.get("pref_phone_brand") in valid_phone_brands:
-                                st.session_state.pref_phone_brand = user_meta.get("pref_phone_brand")
-                                if user_meta.get("pref_phone_model") in CAMERA_PROFILES[st.session_state.pref_phone_brand]:
-                                    st.session_state.pref_phone_model = user_meta.get("pref_phone_model")
+                                st.session_state["pref_phone_brand"] = user_meta.get("pref_phone_brand")
+                                if user_meta.get("pref_phone_model") in CAMERA_PROFILES[st.session_state["pref_phone_brand"]]:
+                                    st.session_state["pref_phone_model"] = user_meta.get("pref_phone_model")
 
                             login_success = True
                         except Exception:
@@ -401,7 +428,7 @@ def db_delete_work(history_id):
         except Exception: pass
 
 # ----------------------------------------------------
-# 5. 좌측 사이드바 (설정 및 데이터 불러오기)
+# 5. 사이드바 (내역 불러오기 및 계정 정보)
 # ----------------------------------------------------
 with st.sidebar:
     st.markdown(f"👤 **접속 계정**: `{st.session_state.current_user}`")
@@ -411,43 +438,8 @@ with st.sidebar:
         st.session_state.logged_in = False; st.rerun()
 
     st.markdown("---")
-    
-    # 1) 페인트 설정
-    st.header("🎨 도료 브랜드 설정")
-    b_index = valid_brands.index(st.session_state.pref_brand) if st.session_state.pref_brand in valid_brands else 0
-    new_brand = st.selectbox("브랜드 변경", valid_brands, index=b_index)
-    
-    if new_brand != st.session_state.pref_brand:
-        st.session_state.pref_brand = new_brand
-        if supabase_client:
-            try: supabase_client.auth.update_user({"data": {"pref_brand": new_brand}})
-            except Exception: pass
-        st.rerun()
-        
-    st.info(f"📌 {BRAND_CONFIGS[st.session_state.pref_brand]['special_rules']}")
 
-    st.markdown("---")
-
-    # 2) 스마트폰 카메라 설정
-    st.header("📱 스마트폰 카메라 설정")
-    pb_idx = valid_phone_brands.index(st.session_state.pref_phone_brand) if st.session_state.pref_phone_brand in valid_phone_brands else 0
-    new_p_brand = st.selectbox("제조사 선택", valid_phone_brands, index=pb_idx)
-    
-    p_models = list(CAMERA_PROFILES[new_p_brand].keys())
-    m_index = p_models.index(st.session_state.pref_phone_model) if st.session_state.pref_phone_model in p_models else 0
-    new_p_model = st.selectbox("기종 선택", p_models, index=m_index)
-
-    if new_p_brand != st.session_state.pref_phone_brand or new_p_model != st.session_state.pref_phone_model:
-        st.session_state.pref_phone_brand = new_p_brand
-        st.session_state.pref_phone_model = new_p_model
-        if supabase_client:
-            try: supabase_client.auth.update_user({"data": {"pref_phone_brand": new_p_brand, "pref_phone_model": new_p_model}})
-            except Exception: pass
-        st.rerun()
-
-    st.markdown("---")
-
-    # 3) 저장된 내역 불러오기 (★ 핵심: 입력창 Key 동기화로 자동 채움 버그 해결 ★)
+    # 저장된 내역 불러오기 (★ 불러올 때 입력창 메모리 키 완벽 동기화 ★)
     st.header("📁 저장된 내역 불러오기")
     db_history = db_fetch_user_history()
     if db_history:
@@ -461,15 +453,14 @@ with st.sidebar:
             if st.button("📂 불러오기", use_container_width=True):
                 loaded_color = selected_row.get("color_name", "")
                 st.session_state.color_name = loaded_color
-                st.session_state.color_name_input = loaded_color  # ★ 입력창 고유 Key 메모리에 즉시 수치 주입!
+                st.session_state["color_name_input"] = loaded_color  # ★ 입력창 메모리 직접 주입으로 100% 자동 채움!
                 
                 st.session_state.current_stage = selected_row["stage"]
-                st.session_state.pref_brand = selected_row["brand"]
+                st.session_state["pref_brand"] = selected_row["brand"]
                 st.session_state.ai_result_text = selected_row.get("ai_result", "")
                 try: st.session_state.recipe_table_df = pd.read_json(io.StringIO(selected_row["recipe_json"]))
                 except Exception: pass
                 
-                # 데이터 에디터 잔상 제거
                 if "editor_1" in st.session_state: del st.session_state["editor_1"]
                 
                 st.toast(f"📂 '{selected_row['title']}' 내역을 성공적으로 불러왔습니다!")
@@ -484,7 +475,6 @@ with st.sidebar:
 
     st.markdown("---")
     
-    # 4) 초기화
     st.header("⚙️ 시스템 설정")
     if st.button("🔄 새로운 작업 시작 (Reset)", use_container_width=True):
         reset_workspace()
@@ -492,15 +482,39 @@ with st.sidebar:
         st.rerun()
 
 # ----------------------------------------------------
-# 6. 메인 화면 구성
+# 6. 메인 화면 구성 (★ 설정 카드 메인 상단 고정 노출 ★)
 # ----------------------------------------------------
-current_brand = st.session_state.pref_brand
-current_camera = f"{st.session_state.pref_phone_brand} {st.session_state.pref_phone_model}"
+current_brand = st.session_state["pref_brand"]
+current_camera = f"{st.session_state['pref_phone_brand']} {st.session_state['pref_phone_model']}"
 
 st.markdown(f"""<div class="noroo-header-box">
     <span class="noroo-brand-name">MULTI-BRAND AUTO COLOR SYSTEM</span>
     <h1 class="noroo-main-title">[{current_brand}] AI 스마트 조색 & 결함 진단</h1>
 </div>""", unsafe_allow_html=True)
+
+# ★★★ 절대 사라지지 않는 메인 화면 상단 고정 설정 박스 ★★★
+st.markdown('<div class="settings-card-box">', unsafe_allow_html=True)
+st.markdown("#### ⚙️ 내 기본 설정 (변경 시 클라우드 자동 저장)")
+
+col_set1, col_set2 = st.columns(2)
+with col_set1:
+    st.selectbox("🎨 도료 브랜드 선택", valid_brands, key="pref_brand", on_change=sync_brand_to_cloud)
+    b_info = BRAND_CONFIGS[st.session_state["pref_brand"]]
+    st.info(f"📌 **수칙**: {b_info['special_rules']}\n\n🧪 **희석**: {b_info['thinner_info']}")
+
+with col_set2:
+    st.selectbox("📱 카메라 제조사", valid_phone_brands, key="pref_phone_brand", on_change=sync_phone_brand_to_cloud)
+    
+    p_models = list(CAMERA_PROFILES[st.session_state["pref_phone_brand"]].keys())
+    # 안전장치
+    if st.session_state["pref_phone_model"] not in p_models:
+        st.session_state["pref_phone_model"] = p_models[0]
+        
+    st.selectbox("📱 스마트폰 기종", p_models, key="pref_phone_model", on_change=sync_phone_model_to_cloud)
+    st.caption(f"🎯 **보정 알고리즘**: {CAMERA_PROFILES[st.session_state['pref_phone_brand']][st.session_state['pref_phone_model']]}")
+
+st.markdown('</div>', unsafe_allow_html=True)
+
 st.markdown("---")
 
 tab_tuning, tab_defect = st.tabs([f"🎨 {current_brand} AI 미세 조색", "🔍 도장 결함 진단"])
@@ -516,7 +530,7 @@ with tab_tuning:
     
     col_c1, col_c2 = st.columns([3.5, 1])
     with col_c1:
-        # ★ key="color_name_input"으로 묶어 불러오기 시 100% 자동 채워짐!
+        # ★ key="color_name_input" 연결로 불러오기 시 즉시 자동 입력!
         input_color_val = st.text_input(
             "차종 및 목표 색상코드/색상명을 입력하세요",
             placeholder="예: 기아 ABT, 현대 SWP 등",
@@ -626,7 +640,7 @@ with tab_tuning:
                     - 색상명: {st.session_state.color_name}
                     - 배합표: \n{st.session_state.recipe_table_df.to_string(index=False)}
                     - 목표량: {target_total_weight}g
-                    - 촬영: {current_camera} ({CAMERA_PROFILES[st.session_state.pref_phone_brand][st.session_state.pref_phone_model]})
+                    - 촬영: {current_camera} ({CAMERA_PROFILES[st.session_state['pref_phone_brand']][st.session_state['pref_phone_model']]})
                     - 측색: {lab_data}
                     {rag}
                     Delta E <= 0.5 판정 시 '[판정: 🎉 조색 완벽 합격 (Delta E <= 0.5)]' 명시.
