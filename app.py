@@ -297,23 +297,27 @@ def reset_workspace():
     for k in widget_keys:
         del st.session_state[k]
 
-# Custom CSS (상단 툴바/GitHub 로고/하단 왕관 배지 완전 숨김 포함)
+# Custom CSS (상단 툴바/GitHub 로고/하단 모바일 배지 완전 차단 스타일 적용)
 st.markdown("""<style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     html, body, [class*="css"] {
         font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
     }
     
-    /* Streamlit 상단 헤더, 깃허브 Fork, 메뉴 및 하단 로고 배지 완전 숨기기 */
-    #MainMenu {visibility: hidden;}
-    header {visibility: hidden;}
-    footer {visibility: hidden;}
-    [data-testid="stHeader"] {display: none !important;}
+    /* 모바일/데스크톱 Streamlit 헤더, 깃허브 Fork, 푸터, 로고 배지 완전 숨기기 */
+    #MainMenu {visibility: hidden !important; display: none !important;}
+    header {visibility: hidden !important; display: none !important;}
+    footer {visibility: hidden !important; display: none !important;}
+    [data-testid="stHeader"] {display: none !important; height: 0 !important;}
     [data-testid="stToolbar"] {display: none !important;}
     [data-testid="stDecoration"] {display: none !important;}
     [data-testid="stStatusWidget"] {display: none !important;}
     [class*="viewerBadge"] {display: none !important;}
-    .stAppDeployButton {display: none !important;}
+    [class*="stAppDeployButton"] {display: none !important;}
+    div[class*="viewerBadge"] {display: none !important;}
+    div[class*="stDecoration"] {display: none !important;}
+    a[href*="streamlit.io"] {display: none !important;}
+    button[title*="Streamlit"] {display: none !important;}
 
     .noroo-header-box {
         background: linear-gradient(135deg, #091936 0%, #003375 50%, #005BB5 100%);
