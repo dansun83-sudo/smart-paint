@@ -267,6 +267,17 @@ if "show_next_btn" not in st.session_state:
 if "is_passed" not in st.session_state:
     st.session_state.is_passed = False
 
+# 기본 선택 세션 설정
+valid_brands = list(BRAND_CONFIGS.keys())
+if "selected_brand_key" not in st.session_state or st.session_state.selected_brand_key not in valid_brands:
+    st.session_state.selected_brand_key = valid_brands[0]
+
+if "phone_brand_key" not in st.session_state:
+    st.session_state.phone_brand_key = list(CAMERA_PROFILES.keys())[0]
+
+if "phone_model_key" not in st.session_state:
+    st.session_state.phone_model_key = list(CAMERA_PROFILES[st.session_state.phone_brand_key].keys())[0]
+
 def go_next_stage():
     st.session_state.current_stage += 1
     st.session_state.show_next_btn = False
@@ -298,14 +309,14 @@ def reset_workspace():
     for k in widget_keys:
         del st.session_state[k]
 
-# Custom CSS (모바일 토글 버튼 노출 및 브랜딩 제거)
+# Custom CSS
 st.markdown("""<style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     html, body, [class*="css"] {
         font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
     }
     
-    /* 1. 불필요한 브랜딩/푸터/우측 상단 메뉴 제거 */
+    /* 불필요한 브랜딩/푸터/우측 상단 메뉴 제거 */
     #MainMenu {visibility: hidden !important;}
     footer {visibility: hidden !important; display: none !important;}
     [data-testid="stDecoration"] {display: none !important;}
@@ -314,35 +325,10 @@ st.markdown("""<style>
     [class*="viewerBadge"] {display: none !important;}
     [class*="stAppDeployButton"] {display: none !important;}
     
-    /* 2. 상단 헤더 영역 투명화 */
+    /* 상단 헤더 영역 투명화 */
     header[data-testid="stHeader"] {
         background: transparent !important;
         z-index: 1000 !important;
-    }
-
-    /* 3. 모바일 사이드바 열기 버튼(>) 고정 노출 */
-    [data-testid="stSidebarCollapsedControl"] {
-        display: block !important;
-        visibility: visible !important;
-        z-index: 999999 !important;
-        position: fixed !important;
-        top: 10px !important;
-        left: 10px !important;
-    }
-    [data-testid="stSidebarCollapsedControl"] button {
-        background-color: #003375 !important;
-        color: #FFFFFF !important;
-        border: 1px solid #82B1FF !important;
-        border-radius: 8px !important;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
-        width: 42px !important;
-        height: 42px !important;
-    }
-    [data-testid="stSidebarCollapsedControl"] button svg {
-        fill: #FFFFFF !important;
-        color: #FFFFFF !important;
-        width: 24px !important;
-        height: 24px !important;
     }
 
     .noroo-header-box {
@@ -580,7 +566,7 @@ def db_delete_work(history_id, history_title):
             st.sidebar.error(f"삭제 오류: {e}")
 
 # ----------------------------------------------------
-# 5. 사이드바 구성 (불러오기 및 삭제)
+# 5. 사이드바 구성 (저장 내역 불러오기 및 계정 관리)
 # ----------------------------------------------------
 with st.sidebar:
     st.markdown(f"👤 **접속 계정**: `{st.session_state.current_user}`")
@@ -597,23 +583,6 @@ with st.sidebar:
         st.session_state.user_email = ""
         st.rerun()
 
-    st.markdown("---")
-    st.header("🎨 도료 브랜드 선택")
-    
-    valid_brands = list(BRAND_CONFIGS.keys())
-    if "selected_brand_key" not in st.session_state or st.session_state.selected_brand_key not in valid_brands:
-        st.session_state.selected_brand_key = valid_brands[0]
-
-    selected_brand = st.selectbox(
-        "조색할 도료 브랜드를 선택하세요",
-        valid_brands,
-        index=valid_brands.index(st.session_state.selected_brand_key),
-        key="selected_brand_selectbox"
-    )
-    st.session_state.selected_brand_key = selected_brand
-    
-    brand_info = BRAND_CONFIGS[selected_brand]
-    st.info(f"📌 **선택 브랜드 수칙**: {brand_info['special_rules']}\n\n🧪 **희석 수칙**: {brand_info['thinner_info']}")
     st.markdown("---")
     
     # DB 저장 목록 조회 및 불러오기/삭제 기능
@@ -657,21 +626,52 @@ with st.sidebar:
         st.sidebar.success("✨ 새로운 작업 화면으로 초기화되었습니다.")
         st.rerun()
 
-    st.markdown("---")
-    st.subheader("📱 스마트폰 카메라 보정")
-    brand_phone = st.selectbox("제조사 선택", list(CAMERA_PROFILES.keys()), index=0)
-    available_models = list(CAMERA_PROFILES[brand_phone].keys())
-    phone_model = st.selectbox("기종 선택", available_models)
-    
-    selected_camera_profile = CAMERA_PROFILES[brand_phone][phone_model]
-    selected_camera = f"{brand_phone} {phone_model}"
-    st.caption(f"🎯 **카메라 보정 알고리즘**: {selected_camera_profile}")
+selected_brand = st.session_state.selected_brand_key
+selected_camera = f"{st.session_state.phone_brand_key} {st.session_state.phone_model_key}"
+selected_camera_profile = CAMERA_PROFILES[st.session_state.phone_brand_key][st.session_state.phone_model_key]
 
 # 메인 헤더
 st.markdown(f"""<div class="noroo-header-box">
     <span class="noroo-brand-name">MULTI-BRAND AUTO COLOR SYSTEM</span>
     <h1 class="noroo-main-title">[{selected_brand}] AI 스마트 조색 & 결함 진단</h1>
 </div>""", unsafe_allow_html=True)
+
+# ----------------------------------------------------
+# ★ 모바일 전용 상단 설정 확인/변경 대시보드 ★
+# ----------------------------------------------------
+st.write("")
+with st.expander(f"⚙️ 현재 적용 설정: [{selected_brand}] | [{selected_camera}] (터치하여 변경)", expanded=False):
+    col_mb1, col_mb2 = st.columns(2)
+    
+    with col_mb1:
+        st.markdown("##### 🎨 도료 브랜드 선택")
+        selected_brand_input = st.selectbox(
+            "브랜드 변경",
+            valid_brands,
+            index=valid_brands.index(st.session_state.selected_brand_key),
+            key="main_brand_selectbox"
+        )
+        if selected_brand_input != st.session_state.selected_brand_key:
+            st.session_state.selected_brand_key = selected_brand_input
+            st.rerun()
+            
+        b_info = BRAND_CONFIGS[st.session_state.selected_brand_key]
+        st.info(f"📌 **브랜드 수칙**: {b_info['special_rules']}\n\n🧪 **희석 수칙**: {b_info['thinner_info']}")
+
+    with col_mb2:
+        st.markdown("##### 📱 스마트폰 카메라 보정")
+        p_brand = st.selectbox("제조사 선택", list(CAMERA_PROFILES.keys()), index=list(CAMERA_PROFILES.keys()).index(st.session_state.phone_brand_key), key="main_p_brand_select")
+        p_models = list(CAMERA_PROFILES[p_brand].keys())
+        
+        curr_m_idx = p_models.index(st.session_state.phone_model_key) if st.session_state.phone_model_key in p_models else 0
+        p_model = st.selectbox("기종 선택", p_models, index=curr_m_idx, key="main_p_model_select")
+        
+        if p_brand != st.session_state.phone_brand_key or p_model != st.session_state.phone_model_key:
+            st.session_state.phone_brand_key = p_brand
+            st.session_state.phone_model_key = p_model
+            st.rerun()
+            
+        st.caption(f"🎯 **카메라 보정 알고리즘**: {CAMERA_PROFILES[p_brand][p_model]}")
 
 st.markdown("---")
 
@@ -847,7 +847,7 @@ with tab_tuning:
                 recipe_text = st.text_area(
                     "1차 배합 레시피 직접 작성",
                     value="",
-                    placeholder=f"예: {brand_info['code_example']}",
+                    placeholder=f"예: {BRAND_CONFIGS[selected_brand]['code_example']}",
                     key="r_text_1차"
                 )
                 if recipe_text.strip():
@@ -923,8 +923,8 @@ with tab_tuning:
                     [선택 브랜드 및 현장 기술 수칙]
                     - **선택 브랜드**: {selected_brand}
                     - **목표 차종 및 색상명/코드**: {st.session_state.color_name if st.session_state.color_name else '미지정'}
-                    - **브랜드 특수 수칙**: {brand_info['special_rules']}
-                    - **희석제 수칙**: {brand_info['thinner_info']}
+                    - **브랜드 특수 수칙**: {BRAND_CONFIGS[selected_brand]['special_rules']}
+                    - **희석제 수칙**: {BRAND_CONFIGS[selected_brand]['thinner_info']}
                     - **현재 조색 진행 단계**: {stage_code} 조색
                     - **이전 배합표 데이터**:
                     {table_str}
@@ -949,7 +949,7 @@ with tab_tuning:
                     3. **📊 AI {prev_stage_code} vs {stage_code} 신규 배합 대조표 (목표 총량 {target_total_weight}g 기준)**:
                        | 안료 코드 | {prev_stage_code} 중량 (g) | {stage_code} 신규 중량 (g) | 가감 차이 (g) | 처방 역할 |
                     4. **[{selected_brand}] 전용 교반 및 희석 지침**:
-                       - 희석제 권장 혼합비 ({brand_info['thinner_info']} 명시)
+                       - 희석제 권장 혼합비 ({BRAND_CONFIGS[selected_brand]['thinner_info']} 명시)
                        - 노즐 거리, 에어 압력 및 건조 수칙
                     """
 
