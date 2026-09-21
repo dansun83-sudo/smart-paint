@@ -297,12 +297,24 @@ def reset_workspace():
     for k in widget_keys:
         del st.session_state[k]
 
-# Custom CSS
+# Custom CSS (상단 툴바/GitHub 로고/하단 왕관 배지 완전 숨김 포함)
 st.markdown("""<style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     html, body, [class*="css"] {
         font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
     }
+    
+    /* Streamlit 상단 헤더, 깃허브 Fork, 메뉴 및 하단 로고 배지 완전 숨기기 */
+    #MainMenu {visibility: hidden;}
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
+    [data-testid="stHeader"] {display: none !important;}
+    [data-testid="stToolbar"] {display: none !important;}
+    [data-testid="stDecoration"] {display: none !important;}
+    [data-testid="stStatusWidget"] {display: none !important;}
+    [class*="viewerBadge"] {display: none !important;}
+    .stAppDeployButton {display: none !important;}
+
     .noroo-header-box {
         background: linear-gradient(135deg, #091936 0%, #003375 50%, #005BB5 100%);
         padding: 22px 28px;
@@ -364,7 +376,7 @@ st.markdown("""<style>
 </style>""", unsafe_allow_html=True)
 
 # ----------------------------------------------------
-# 3. Supabase Auth 회원가입 및 로그인 모듈 (Smart-Paint 문구 적용)
+# 3. Supabase Auth 회원가입 및 로그인 모듈
 # ----------------------------------------------------
 if not st.session_state.logged_in:
     st.markdown("""<div class="noroo-header-box" style="text-align:center;">
