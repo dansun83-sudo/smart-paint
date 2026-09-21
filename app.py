@@ -212,7 +212,8 @@ def extract_df_from_recipe_image(client, image_bytes, brand_name):
 st.set_page_config(
     page_title="Multi-Brand AI Smart Color System",
     page_icon="🎨",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
 if "GEMINI_API_KEY" in st.secrets:
@@ -297,7 +298,7 @@ def reset_workspace():
     for k in widget_keys:
         del st.session_state[k]
 
-# Custom CSS (모바일 사이드바 버튼(>)을 확실히 보장하도록 교정)
+# Custom CSS (모바일 토글 버튼 노출 및 브랜딩 제거)
 st.markdown("""<style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     html, body, [class*="css"] {
@@ -307,33 +308,41 @@ st.markdown("""<style>
     /* 1. 불필요한 브랜딩/푸터/우측 상단 메뉴 제거 */
     #MainMenu {visibility: hidden !important;}
     footer {visibility: hidden !important; display: none !important;}
-    [data-testid="stToolbar"] {visibility: hidden !important; display: none !important;}
     [data-testid="stDecoration"] {display: none !important;}
     [data-testid="stStatusWidget"] {display: none !important;}
+    [data-testid="stToolbar"] {display: none !important;}
     [class*="viewerBadge"] {display: none !important;}
     [class*="stAppDeployButton"] {display: none !important;}
-    div[class*="viewerBadge"] {display: none !important;}
-    a[href*="streamlit.io"] {display: none !important;}
-    button[title*="Streamlit"] {display: none !important;}
     
-    /* 2. 상단 헤더 배경을 투명하게 만들어 모바일 사이드바 버튼을 살림 */
+    /* 2. 상단 헤더 영역 투명화 */
     header[data-testid="stHeader"] {
         background: transparent !important;
-        z-index: 999999 !important;
+        z-index: 1000 !important;
     }
 
-    /* 3. 모바일용 사이드바 열기/닫기(>) 버튼 강제 노출 및 선명 스타일 */
-    [data-testid="stSidebarCollapseButton"],
-    [data-testid="stSidebarCollapsedControl"],
-    button[aria-label="Open sidebar"],
-    button[aria-label="Close sidebar"] {
-        display: flex !important;
+    /* 3. 모바일 사이드바 열기 버튼(>) 고정 노출 */
+    [data-testid="stSidebarCollapsedControl"] {
+        display: block !important;
         visibility: visible !important;
-        opacity: 1 !important;
-        color: #003375 !important;
-        background-color: rgba(255, 255, 255, 0.9) !important;
+        z-index: 999999 !important;
+        position: fixed !important;
+        top: 10px !important;
+        left: 10px !important;
+    }
+    [data-testid="stSidebarCollapsedControl"] button {
+        background-color: #003375 !important;
+        color: #FFFFFF !important;
+        border: 1px solid #82B1FF !important;
         border-radius: 8px !important;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+        width: 42px !important;
+        height: 42px !important;
+    }
+    [data-testid="stSidebarCollapsedControl"] button svg {
+        fill: #FFFFFF !important;
+        color: #FFFFFF !important;
+        width: 24px !important;
+        height: 24px !important;
     }
 
     .noroo-header-box {
@@ -718,11 +727,12 @@ with tab_tuning:
     with col_t1:
         st.write("1. 목표 차체/판넬 사진 (Target)")
         st.markdown("""<div class="distance-guide-box">
-            <b>📏 촬영 가이드</b>: 차체 표면으로부터 <b>약 15cm 거리</b>에서 수직(90°)으로 촬영해 주세요.
+            <b>📏 촬영 가이드</b>: 차체 표면으로부터 <b>약 15cm 거리</b>에서 수직(90°)으로 촬영해 주세요.<br>
+            💡 <b>모바일 후면 카메라 팁</b>: [📷 앱 내 직접 촬영] 시 화면의 <b>카메라 전환(🔄) 버튼</b>을 누르시거나, <b>[📁 갤러리/후면 카메라]</b> 탭 선택 후 [카메라]를 누르시면 스마트폰 기본 후면 카메라가 즉시 실행됩니다.
         </div>""", unsafe_allow_html=True)
         
         if st.session_state.target_img_bytes is None:
-            t_input_tab1, t_input_tab2 = st.tabs(["📷 앱에서 직접 촬영", "📁 갤러리 파일 선택"])
+            t_input_tab1, t_input_tab2 = st.tabs(["📷 앱 내 직접 촬영", "📁 갤러리 / 후면 카메라"])
             
             with t_input_tab1:
                 cam_target = st.camera_input("목표 차체 촬영 (거리 15cm)", key="cam_target_input")
@@ -732,7 +742,7 @@ with tab_tuning:
                     st.rerun()
                     
             with t_input_tab2:
-                uploaded_target = st.file_uploader("목표 차체 사진 파일", type=["jpg", "png", "jpeg"], key="file_target_input")
+                uploaded_target = st.file_uploader("목표 차체 사진 파일 선택 (후면 카메라 추천)", type=["jpg", "png", "jpeg"], key="file_target_input")
                 if uploaded_target:
                     st.session_state.target_img_bytes = uploaded_target.getvalue()
                     st.session_state.target_img_name = uploaded_target.name
@@ -751,10 +761,11 @@ with tab_tuning:
     with col_t2:
         st.write(f"2. {stage_code} 도장 시편 사진 (Sample)")
         st.markdown("""<div class="distance-guide-box">
-            <b>📏 촬영 가이드</b>: 시편 표면으로부터 <b>약 15cm 거리</b>에서 수직(90°)으로 촬영해 주세요.
+            <b>📏 촬영 가이드</b>: 시편 표면으로부터 <b>약 15cm 거리</b>에서 수직(90°)으로 촬영해 주세요.<br>
+            💡 <b>모바일 후면 카메라 팁</b>: [📷 앱 내 직접 촬영] 시 화면의 <b>카메라 전환(🔄) 버튼</b>을 누르시거나, <b>[📁 갤러리/후면 카메라]</b> 탭 선택 후 [카메라]를 누르시면 스마트폰 기본 후면 카메라가 즉시 실행됩니다.
         </div>""", unsafe_allow_html=True)
         
-        s_input_tab1, s_input_tab2 = st.tabs(["📷 앱에서 직접 촬영", "📁 갤러리 파일 선택"])
+        s_input_tab1, s_input_tab2 = st.tabs(["📷 앱 내 직접 촬영", "📁 갤러리 / 후면 카메라"])
         
         with s_input_tab1:
             cam_sample = st.camera_input(f"{stage_code} 시편 촬영 (거리 15cm)", key=f"cam_sample_{current_stage}")
@@ -762,7 +773,7 @@ with tab_tuning:
                 st.session_state.temp_sample_bytes = cam_sample.getvalue()
                 
         with s_input_tab2:
-            file_sample = st.file_uploader(f"{stage_code} 시편 파일 선택", type=["jpg", "png", "jpeg"], key=f"file_sample_{current_stage}")
+            file_sample = st.file_uploader(f"{stage_code} 시편 파일 선택 (후면 카메라 추천)", type=["jpg", "png", "jpeg"], key=f"file_sample_{current_stage}")
             if file_sample:
                 st.session_state.temp_sample_bytes = file_sample.getvalue()
 
@@ -993,7 +1004,7 @@ with tab_defect:
 
     with col1:
         st.write("결함 부위 사진 입력")
-        d_input_tab1, d_input_tab2 = st.tabs(["📷 앱에서 직접 촬영", "📁 갤러리 파일 선택"])
+        d_input_tab1, d_input_tab2 = st.tabs(["📷 앱 내 직접 촬영", "📁 갤러리 / 후면 카메라"])
         
         defect_img_bytes = None
 
@@ -1003,7 +1014,7 @@ with tab_defect:
                 defect_img_bytes = cam_defect.getvalue()
 
         with d_input_tab2:
-            file_defect = st.file_uploader("결함 부위 사진 파일 선택", type=["jpg", "png", "jpeg"], key="file_defect_input")
+            file_defect = st.file_uploader("결함 부위 사진 파일 선택 (후면 카메라 추천)", type=["jpg", "png", "jpeg"], key="file_defect_input")
             if file_defect:
                 defect_img_bytes = file_defect.getvalue()
 
