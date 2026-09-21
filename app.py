@@ -297,14 +297,14 @@ def reset_workspace():
     for k in widget_keys:
         del st.session_state[k]
 
-# Custom CSS (모바일 사이드바 버튼은 유지하고 브랜딩 배지만 완벽 차단)
+# Custom CSS (모바일 사이드바 버튼(>)을 확실히 보장하도록 교정)
 st.markdown("""<style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     html, body, [class*="css"] {
         font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
     }
     
-    /* 사이드바 메뉴 버튼은 살리고, 브랜딩 배지/메뉴만 차단 */
+    /* 1. 불필요한 브랜딩/푸터/우측 상단 메뉴 제거 */
     #MainMenu {visibility: hidden !important;}
     footer {visibility: hidden !important; display: none !important;}
     [data-testid="stToolbar"] {visibility: hidden !important; display: none !important;}
@@ -316,9 +316,24 @@ st.markdown("""<style>
     a[href*="streamlit.io"] {display: none !important;}
     button[title*="Streamlit"] {display: none !important;}
     
-    /* 상단 헤더 영역 배경 투명화 및 높이 최소화 */
+    /* 2. 상단 헤더 배경을 투명하게 만들어 모바일 사이드바 버튼을 살림 */
     header[data-testid="stHeader"] {
         background: transparent !important;
+        z-index: 999999 !important;
+    }
+
+    /* 3. 모바일용 사이드바 열기/닫기(>) 버튼 강제 노출 및 선명 스타일 */
+    [data-testid="stSidebarCollapseButton"],
+    [data-testid="stSidebarCollapsedControl"],
+    button[aria-label="Open sidebar"],
+    button[aria-label="Close sidebar"] {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        color: #003375 !important;
+        background-color: rgba(255, 255, 255, 0.9) !important;
+        border-radius: 8px !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
     }
 
     .noroo-header-box {
