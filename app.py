@@ -113,7 +113,6 @@ def load_and_resize(image_file_or_bytes, max_size=(2500, 2500)):
         img = Image.open(io.BytesIO(image_file_or_bytes))
     else:
         img = Image.open(image_file_or_bytes)
-        
     if img.mode in ("RGBA", "P"):
         img = img.convert("RGB")
     img.thumbnail(max_size, RESAMPLE_FILTER)
@@ -240,7 +239,9 @@ def reset_workspace():
     """도화지(작업 내용)만 새것으로 교체하고 설정값은 건드리지 않는 초기화 함수"""
     st.session_state.current_stage = 1
     st.session_state.color_name = ""
+    st.session_state.color_name_input_field = ""
     st.session_state.target_img_bytes = None
+    st.session_state.target_img_name = "카메라 직촬 Target"
     st.session_state.prev_sample_bytes = None
     st.session_state.temp_sample_bytes = None
     st.session_state.recipe_table_df = pd.DataFrame({"안료 코드": ["", "", "", ""], "1차 배합 중량 (g)": [0.0, 0.0, 0.0, 0.0]})
@@ -252,18 +253,23 @@ def reset_workspace():
     for k in keys_to_delete:
         del st.session_state[k]
 
-# Custom CSS: 모바일 사이드바 버튼을 해치던 요소만 핀포인트로 제거!
+# ★ Custom CSS: 오류 일으키던 사이드바 조작 코드를 전부 삭제하고, 불필요한 클라우드 배지만 원천 차단 ★
 st.markdown("""<style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     html, body, [class*="css"] { font-family: 'Pretendard', -apple-system, sans-serif; }
     
-    /* 🚨 사이드바 열기 버튼(stHeader, collapsedControl)은 절대 건드리지 않음! */
+    /* 1. 기본 제공되는 우측 상단 메뉴와 푸터 숨김 */
     #MainMenu {visibility: hidden !important; display: none !important;}
     footer {visibility: hidden !important; display: none !important;}
     [data-testid="stToolbar"] {display: none !important;}
     .stAppDeployButton {display: none !important;}
-    [class*="viewerBadge"] {display: none !important;}
+    
+    /* 2. 하단 왕관 배지(Streamlit Community Cloud Logo) 완벽 차단 */
+    iframe {display: none !important;} /* 클라우드 배지는 iframe 형태로 주입됨 */
+    div[class*="viewerBadge"] {display: none !important;}
+    #st-deck-badge {display: none !important;}
 
+    /* 3. 디자인 스타일 */
     .noroo-header-box {
         background: linear-gradient(135deg, #091936 0%, #003375 50%, #005BB5 100%);
         padding: 22px 28px; border-radius: 16px; color: #FFFFFF;
@@ -403,7 +409,7 @@ def db_delete_work(history_id):
         except Exception: pass
 
 # ----------------------------------------------------
-# 5. 좌측 사이드바 (★설정 및 보관함 완벽 원상 복구★)
+# 5. 좌측 사이드바 (★모바일 메뉴 완벽 복구본★)
 # ----------------------------------------------------
 with st.sidebar:
     st.markdown(f"👤 **접속 계정**: `{st.session_state.current_user}`")
@@ -480,7 +486,7 @@ with st.sidebar:
 
     st.markdown("---")
     
-    # 4) 초기화
+    # 4) 작업 완전 초기화 버튼
     st.header("⚙️ 시스템 설정")
     if st.button("🔄 새로운 작업 시작 (Reset)", use_container_width=True):
         reset_workspace()
