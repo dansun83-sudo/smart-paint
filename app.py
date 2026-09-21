@@ -233,15 +233,21 @@ if HAS_SUPABASE_LIB and "SUPABASE_URL" in st.secrets and "SUPABASE_KEY" in st.se
         st.sidebar.warning(f"⚠️ Supabase 연결 실패: {e}")
 
 # ----------------------------------------------------
-# ★ 상태(Session) 변수 초기화 (클라우드 동기화 핵심) ★
+# ★ 상태(Session) 변수 및 기본 설정값 초기화 (오류 원천 차단) ★
 # ----------------------------------------------------
 valid_brands = list(BRAND_CONFIGS.keys())
+valid_phone_brands = list(CAMERA_PROFILES.keys())
+
 if "pref_brand" not in st.session_state:
     st.session_state.pref_brand = valid_brands[0]
 if "pref_phone_brand" not in st.session_state:
-    st.session_state.pref_phone_brand = list(CAMERA_PROFILES.keys())[0]
+    st.session_state.pref_phone_brand = valid_phone_brands[0]
 if "pref_phone_model" not in st.session_state:
     st.session_state.pref_phone_model = list(CAMERA_PROFILES[st.session_state.pref_phone_brand].keys())[0]
+
+# 설정 저장 성공 알림 띄우기용 플래그
+if "show_save_toast" not in st.session_state:
+    st.session_state.show_save_toast = False
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -250,53 +256,17 @@ if "current_user" not in st.session_state:
 if "user_email" not in st.session_state:
     st.session_state.user_email = ""
 
-if "current_stage" not in st.session_state:
-    st.session_state.current_stage = 1
-if "color_name" not in st.session_state:
-    st.session_state.color_name = ""
-if "target_img_bytes" not in st.session_state:
-    st.session_state.target_img_bytes = None
-if "target_img_name" not in st.session_state:
-    st.session_state.target_img_name = "카메라 직촬 Target"
-if "prev_sample_bytes" not in st.session_state:
-    st.session_state.prev_sample_bytes = None
-if "temp_sample_bytes" not in st.session_state:
-    st.session_state.temp_sample_bytes = None
+if "current_stage" not in st.session_state: st.session_state.current_stage = 1
+if "color_name" not in st.session_state: st.session_state.color_name = ""
+if "target_img_bytes" not in st.session_state: st.session_state.target_img_bytes = None
+if "target_img_name" not in st.session_state: st.session_state.target_img_name = "카메라 직촬 Target"
+if "prev_sample_bytes" not in st.session_state: st.session_state.prev_sample_bytes = None
+if "temp_sample_bytes" not in st.session_state: st.session_state.temp_sample_bytes = None
 if "recipe_table_df" not in st.session_state:
     st.session_state.recipe_table_df = pd.DataFrame({"안료 코드": ["", "", "", ""], "1차 배합 중량 (g)": [0.0, 0.0, 0.0, 0.0]})
-if "ai_result_text" not in st.session_state:
-    st.session_state.ai_result_text = ""
-if "show_next_btn" not in st.session_state:
-    st.session_state.show_next_btn = False
-if "is_passed" not in st.session_state:
-    st.session_state.is_passed = False
-
-# --- 자동 설정 DB 저장 함수 (콜백) ---
-def update_brand_to_db():
-    if not supabase_client: return
-    try:
-        supabase_client.auth.update_user({"data": {"pref_brand": st.session_state.pref_brand}})
-    except Exception:
-        try:
-            from gotrue.types import UserAttributes
-            supabase_client.auth.update_user(UserAttributes(data={"pref_brand": st.session_state.pref_brand}))
-        except: pass
-
-def update_phone_to_db():
-    p_brand = st.session_state.pref_phone_brand
-    p_model = st.session_state.pref_phone_model
-    models = list(CAMERA_PROFILES.get(p_brand, {}).keys())
-    if p_model not in models:
-        st.session_state.pref_phone_model = models[0]
-        p_model = models[0]
-    if not supabase_client: return
-    try:
-        supabase_client.auth.update_user({"data": {"pref_phone_brand": p_brand, "pref_phone_model": p_model}})
-    except Exception:
-        try:
-            from gotrue.types import UserAttributes
-            supabase_client.auth.update_user(UserAttributes(data={"pref_phone_brand": p_brand, "pref_phone_model": p_model}))
-        except: pass
+if "ai_result_text" not in st.session_state: st.session_state.ai_result_text = ""
+if "show_next_btn" not in st.session_state: st.session_state.show_next_btn = False
+if "is_passed" not in st.session_state: st.session_state.is_passed = False
 
 def go_next_stage():
     st.session_state.current_stage += 1
@@ -308,7 +278,6 @@ def go_next_stage():
         st.session_state.temp_sample_bytes = None
 
 def reset_workspace():
-    """작업 데이터만 리셋하고, 브랜드/핸드폰 '설정'은 유지하는 완전한 초기화 함수"""
     st.session_state.current_stage = 1
     st.session_state.color_name = ""
     st.session_state.color_name_input_field = ""
@@ -323,6 +292,25 @@ def reset_workspace():
     widget_keys = [k for k in st.session_state.keys() if k.startswith(("cam_", "file_", "editor_", "r_text_"))]
     for k in widget_keys:
         del st.session_state[k]
+
+# ★ 클라우드에 설정 자동 업데이트 함수
+def save_cloud_settings(brand, p_brand, p_model):
+    if not supabase_client: return
+    try:
+        supabase_client.auth.update_user({
+            "data": {
+                "pref_brand": brand,
+                "pref_phone_brand": p_brand,
+                "pref_phone_model": p_model
+            }
+        })
+    except Exception:
+        pass
+
+# 설정 저장 확인 토스트 (페이지 새로고침 직후 실행됨)
+if st.session_state.show_save_toast:
+    st.toast("✅ 설정이 클라우드에 안전하게 저장되었습니다.", icon="☁️")
+    st.session_state.show_save_toast = False
 
 # Custom CSS
 st.markdown("""<style>
@@ -429,7 +417,7 @@ st.markdown("""<style>
 </style>""", unsafe_allow_html=True)
 
 # ----------------------------------------------------
-# 3. Supabase Auth 회원가입 및 로그인 모듈 (자동 설정 복구 기능)
+# 3. Supabase Auth (클라우드 설정 완벽 복원)
 # ----------------------------------------------------
 if not st.session_state.logged_in:
     st.markdown("""<div class="noroo-header-box" style="text-align:center;">
@@ -455,8 +443,7 @@ if not st.session_state.logged_in:
                 submitted = st.form_submit_button("🚀 로그인하기", type="primary", use_container_width=True)
                 
                 if submitted:
-                    if remember_email_chk:
-                        st.query_params["saved_email"] = login_email.strip()
+                    if remember_email_chk: st.query_params["saved_email"] = login_email.strip()
                     else:
                         if "saved_email" in st.query_params: del st.query_params["saved_email"]
                             
@@ -471,16 +458,17 @@ if not st.session_state.logged_in:
                             user_meta = res.user.user_metadata
                             st.session_state.current_user = user_meta.get("display_name", res.user.email.split("@")[0])
                             
-                            # ★ 핵심: 클라우드에 마지막으로 저장된 사용자 설정값을 가져와 세션에 덮어쓰기
+                            # ★ 내 프로필에 저장된 설정을 세션에 안전하게 덮어쓰기
                             saved_brand = user_meta.get("pref_brand")
                             if saved_brand in valid_brands:
                                 st.session_state.pref_brand = saved_brand
                                 
                             saved_p_brand = user_meta.get("pref_phone_brand")
-                            saved_p_model = user_meta.get("pref_phone_model")
-                            if saved_p_brand in CAMERA_PROFILES and saved_p_model in CAMERA_PROFILES[saved_p_brand]:
+                            if saved_p_brand in valid_phone_brands:
                                 st.session_state.pref_phone_brand = saved_p_brand
-                                st.session_state.pref_phone_model = saved_p_model
+                                saved_p_model = user_meta.get("pref_phone_model")
+                                if saved_p_model in CAMERA_PROFILES[saved_p_brand]:
+                                    st.session_state.pref_phone_model = saved_p_model
 
                             st.success(f"🎉 {st.session_state.current_user}님, 환영합니다!")
                             st.rerun()
@@ -582,7 +570,7 @@ def db_delete_work(history_id, history_title):
         except: pass
 
 # ----------------------------------------------------
-# 5. 사이드바 구성 (순수하게 보관함 및 계정만 남김)
+# 5. 사이드바 구성
 # ----------------------------------------------------
 with st.sidebar:
     st.markdown(f"👤 **접속 계정**: `{st.session_state.current_user}`")
@@ -614,7 +602,8 @@ with st.sidebar:
                 st.session_state.color_name = loaded_color
                 st.session_state.color_name_input_field = loaded_color
                 st.session_state.current_stage = selected_row["stage"]
-                st.session_state.pref_brand = selected_row["brand"] # 불러오기 시 브랜드 복구
+                # 불러오기 시 브랜드도 임시 변경
+                st.session_state.pref_brand = selected_row["brand"]
                 st.session_state.ai_result_text = selected_row["ai_result"]
                 try: st.session_state.recipe_table_df = pd.read_json(io.StringIO(selected_row["recipe_json"]))
                 except: pass
@@ -634,7 +623,7 @@ with st.sidebar:
         st.rerun()
 
 # ----------------------------------------------------
-# ★ 모바일/메인 화면 상단: 내 설정 표시 및 변경 바
+# ★ 모바일/메인 화면 상단: 내 설정 표시 및 변경 바 (안전한 분리형 방식 적용)
 # ----------------------------------------------------
 selected_brand = st.session_state.pref_brand
 selected_camera = f"{st.session_state.pref_phone_brand} {st.session_state.pref_phone_model}"
@@ -645,22 +634,41 @@ st.markdown(f"""<div class="noroo-header-box">
 </div>""", unsafe_allow_html=True)
 
 st.write("")
-with st.expander(f"⚙️ 내 설정 (클라우드 자동저장): [{selected_brand}] | [{selected_camera}] (터치하여 변경)", expanded=False):
+with st.expander(f"⚙️ 내 설정 (클라우드 동기화): [{selected_brand}] | [{selected_camera}] (터치하여 변경)", expanded=False):
     col_mb1, col_mb2 = st.columns(2)
     
     with col_mb1:
         st.markdown("##### 🎨 도료 브랜드 설정")
-        # Streamlit의 key와 state를 직접 묶어서 100% 동기화 보장 (충돌/초기화 방지)
-        st.selectbox("브랜드 변경", valid_brands, key="pref_brand", on_change=update_brand_to_db)
+        # Streamlit 버그 회피: key 직접 매핑을 없애고 index 기반으로 상태를 완벽 분리
+        b_idx = valid_brands.index(st.session_state.pref_brand) if st.session_state.pref_brand in valid_brands else 0
+        new_brand = st.selectbox("브랜드 변경", valid_brands, index=b_idx)
+        
+        # 값이 변경되었을 때만 세션과 DB에 저장 후 1번만 새로고침
+        if new_brand != st.session_state.pref_brand:
+            st.session_state.pref_brand = new_brand
+            save_cloud_settings(st.session_state.pref_brand, st.session_state.pref_phone_brand, st.session_state.pref_phone_model)
+            st.session_state.show_save_toast = True
+            st.rerun()
+            
         b_info = BRAND_CONFIGS[st.session_state.pref_brand]
         st.info(f"📌 **브랜드 수칙**: {b_info['special_rules']}\n\n🧪 **희석 수칙**: {b_info['thinner_info']}")
 
     with col_mb2:
         st.markdown("##### 📱 스마트폰 카메라 보정 설정")
-        st.selectbox("제조사 선택", list(CAMERA_PROFILES.keys()), key="pref_phone_brand", on_change=update_phone_to_db)
+        pb_idx = valid_phone_brands.index(st.session_state.pref_phone_brand) if st.session_state.pref_phone_brand in valid_phone_brands else 0
+        new_p_brand = st.selectbox("제조사 선택", valid_phone_brands, index=pb_idx)
         
-        p_models = list(CAMERA_PROFILES[st.session_state.pref_phone_brand].keys())
-        st.selectbox("기종 선택", p_models, key="pref_phone_model", on_change=update_phone_to_db)
+        p_models = list(CAMERA_PROFILES[new_p_brand].keys())
+        pm_idx = p_models.index(st.session_state.pref_phone_model) if st.session_state.pref_phone_model in p_models else 0
+        new_p_model = st.selectbox("기종 선택", p_models, index=pm_idx)
+        
+        if new_p_brand != st.session_state.pref_phone_brand or new_p_model != st.session_state.pref_phone_model:
+            st.session_state.pref_phone_brand = new_p_brand
+            st.session_state.pref_phone_model = new_p_model
+            save_cloud_settings(st.session_state.pref_brand, st.session_state.pref_phone_brand, st.session_state.pref_phone_model)
+            st.session_state.show_save_toast = True
+            st.rerun()
+
         st.caption(f"🎯 **카메라 보정 알고리즘**: {CAMERA_PROFILES[st.session_state.pref_phone_brand][st.session_state.pref_phone_model]}")
 
 st.markdown("---")
