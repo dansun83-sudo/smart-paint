@@ -232,7 +232,17 @@ if HAS_SUPABASE_LIB and "SUPABASE_URL" in st.secrets and "SUPABASE_KEY" in st.se
     except Exception as e:
         st.sidebar.warning(f"⚠️ Supabase 연결 실패: {e}")
 
-# 세션 초기화
+# ----------------------------------------------------
+# ★ 상태(Session) 변수 초기화 (클라우드 동기화 핵심) ★
+# ----------------------------------------------------
+valid_brands = list(BRAND_CONFIGS.keys())
+if "pref_brand" not in st.session_state:
+    st.session_state.pref_brand = valid_brands[0]
+if "pref_phone_brand" not in st.session_state:
+    st.session_state.pref_phone_brand = list(CAMERA_PROFILES.keys())[0]
+if "pref_phone_model" not in st.session_state:
+    st.session_state.pref_phone_model = list(CAMERA_PROFILES[st.session_state.pref_phone_brand].keys())[0]
+
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "current_user" not in st.session_state:
@@ -248,18 +258,12 @@ if "target_img_bytes" not in st.session_state:
     st.session_state.target_img_bytes = None
 if "target_img_name" not in st.session_state:
     st.session_state.target_img_name = "카메라 직촬 Target"
-
 if "prev_sample_bytes" not in st.session_state:
     st.session_state.prev_sample_bytes = None
 if "temp_sample_bytes" not in st.session_state:
     st.session_state.temp_sample_bytes = None
-
 if "recipe_table_df" not in st.session_state:
-    st.session_state.recipe_table_df = pd.DataFrame({
-        "안료 코드": ["", "", "", ""],
-        "1차 배합 중량 (g)": [0.0, 0.0, 0.0, 0.0]
-    })
-
+    st.session_state.recipe_table_df = pd.DataFrame({"안료 코드": ["", "", "", ""], "1차 배합 중량 (g)": [0.0, 0.0, 0.0, 0.0]})
 if "ai_result_text" not in st.session_state:
     st.session_state.ai_result_text = ""
 if "show_next_btn" not in st.session_state:
@@ -267,16 +271,32 @@ if "show_next_btn" not in st.session_state:
 if "is_passed" not in st.session_state:
     st.session_state.is_passed = False
 
-# 기본 선택 세션 설정 (초기값 - 로그인 시 덮어씌워짐)
-valid_brands = list(BRAND_CONFIGS.keys())
-if "selected_brand_key" not in st.session_state or st.session_state.selected_brand_key not in valid_brands:
-    st.session_state.selected_brand_key = valid_brands[0]
+# --- 자동 설정 DB 저장 함수 (콜백) ---
+def update_brand_to_db():
+    if not supabase_client: return
+    try:
+        supabase_client.auth.update_user({"data": {"pref_brand": st.session_state.pref_brand}})
+    except Exception:
+        try:
+            from gotrue.types import UserAttributes
+            supabase_client.auth.update_user(UserAttributes(data={"pref_brand": st.session_state.pref_brand}))
+        except: pass
 
-if "phone_brand_key" not in st.session_state:
-    st.session_state.phone_brand_key = list(CAMERA_PROFILES.keys())[0]
-
-if "phone_model_key" not in st.session_state:
-    st.session_state.phone_model_key = list(CAMERA_PROFILES[st.session_state.phone_brand_key].keys())[0]
+def update_phone_to_db():
+    p_brand = st.session_state.pref_phone_brand
+    p_model = st.session_state.pref_phone_model
+    models = list(CAMERA_PROFILES.get(p_brand, {}).keys())
+    if p_model not in models:
+        st.session_state.pref_phone_model = models[0]
+        p_model = models[0]
+    if not supabase_client: return
+    try:
+        supabase_client.auth.update_user({"data": {"pref_phone_brand": p_brand, "pref_phone_model": p_model}})
+    except Exception:
+        try:
+            from gotrue.types import UserAttributes
+            supabase_client.auth.update_user(UserAttributes(data={"pref_phone_brand": p_brand, "pref_phone_model": p_model}))
+        except: pass
 
 def go_next_stage():
     st.session_state.current_stage += 1
@@ -288,7 +308,7 @@ def go_next_stage():
         st.session_state.temp_sample_bytes = None
 
 def reset_workspace():
-    """모든 작업 세션 및 위젯 상태를 완전 초기화하는 함수"""
+    """작업 데이터만 리셋하고, 브랜드/핸드폰 '설정'은 유지하는 완전한 초기화 함수"""
     st.session_state.current_stage = 1
     st.session_state.color_name = ""
     st.session_state.color_name_input_field = ""
@@ -296,15 +316,10 @@ def reset_workspace():
     st.session_state.target_img_name = "카메라 직촬 Target"
     st.session_state.prev_sample_bytes = None
     st.session_state.temp_sample_bytes = None
-    st.session_state.recipe_table_df = pd.DataFrame({
-        "안료 코드": ["", "", "", ""],
-        "1차 배합 중량 (g)": [0.0, 0.0, 0.0, 0.0]
-    })
+    st.session_state.recipe_table_df = pd.DataFrame({"안료 코드": ["", "", "", ""], "1차 배합 중량 (g)": [0.0, 0.0, 0.0, 0.0]})
     st.session_state.ai_result_text = ""
     st.session_state.show_next_btn = False
     st.session_state.is_passed = False
-    
-    # 카메라, 파일 업로더, 에디터 등 임시 위젯 키 전체 삭제
     widget_keys = [k for k in st.session_state.keys() if k.startswith(("cam_", "file_", "editor_", "r_text_"))]
     for k in widget_keys:
         del st.session_state[k]
@@ -316,7 +331,6 @@ st.markdown("""<style>
         font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
     }
     
-    /* 불필요한 브랜딩/푸터/우측 상단 메뉴 제거 */
     #MainMenu {visibility: hidden !important;}
     footer {visibility: hidden !important; display: none !important;}
     [data-testid="stDecoration"] {display: none !important;}
@@ -325,13 +339,11 @@ st.markdown("""<style>
     [class*="viewerBadge"] {display: none !important;}
     [class*="stAppDeployButton"] {display: none !important;}
     
-    /* 상단 헤더 영역 투명화 */
     header[data-testid="stHeader"] {
         background: transparent !important;
         z-index: 1000 !important;
     }
 
-    /* 모바일 사이드바 버튼 고정 */
     [data-testid="stSidebarCollapsedControl"] {
         display: block !important;
         visibility: visible !important;
@@ -417,7 +429,7 @@ st.markdown("""<style>
 </style>""", unsafe_allow_html=True)
 
 # ----------------------------------------------------
-# 3. Supabase Auth 회원가입 및 로그인 모듈 (자동 설정 불러오기 적용)
+# 3. Supabase Auth 회원가입 및 로그인 모듈 (자동 설정 복구 기능)
 # ----------------------------------------------------
 if not st.session_state.logged_in:
     st.markdown("""<div class="noroo-header-box" style="text-align:center;">
@@ -433,30 +445,25 @@ if not st.session_state.logged_in:
         
         with auth_tab1:
             st.subheader("클라우드 로그인")
-            
             saved_email_val = st.query_params.get("saved_email", "")
             remember_email_init = True if saved_email_val else False
             
             with st.form("login_form", clear_on_submit=False):
                 login_email = st.text_input("이메일 (Email)", value=saved_email_val, key="login_email_input")
                 login_pw = st.text_input("비밀번호 (Password)", type="password", key="login_pw_input")
-                
                 remember_email_chk = st.checkbox("☑️ 이메일(아이디) 기억하기", value=remember_email_init)
-                
                 submitted = st.form_submit_button("🚀 로그인하기", type="primary", use_container_width=True)
                 
                 if submitted:
                     if remember_email_chk:
                         st.query_params["saved_email"] = login_email.strip()
                     else:
-                        if "saved_email" in st.query_params:
-                            del st.query_params["saved_email"]
+                        if "saved_email" in st.query_params: del st.query_params["saved_email"]
                             
                     if supabase_client:
                         try:
                             res = supabase_client.auth.sign_in_with_password({
-                                "email": login_email.strip(),
-                                "password": login_pw.strip()
+                                "email": login_email.strip(), "password": login_pw.strip()
                             })
                             st.session_state.logged_in = True
                             st.session_state.user_email = res.user.email
@@ -464,16 +471,16 @@ if not st.session_state.logged_in:
                             user_meta = res.user.user_metadata
                             st.session_state.current_user = user_meta.get("display_name", res.user.email.split("@")[0])
                             
-                            # ★ 클라우드에 저장된 사용자 고유 설정값(브랜드, 핸드폰) 불러오기 적용
+                            # ★ 핵심: 클라우드에 마지막으로 저장된 사용자 설정값을 가져와 세션에 덮어쓰기
                             saved_brand = user_meta.get("pref_brand")
-                            if saved_brand in BRAND_CONFIGS:
-                                st.session_state.selected_brand_key = saved_brand
+                            if saved_brand in valid_brands:
+                                st.session_state.pref_brand = saved_brand
                                 
                             saved_p_brand = user_meta.get("pref_phone_brand")
                             saved_p_model = user_meta.get("pref_phone_model")
                             if saved_p_brand in CAMERA_PROFILES and saved_p_model in CAMERA_PROFILES[saved_p_brand]:
-                                st.session_state.phone_brand_key = saved_p_brand
-                                st.session_state.phone_model_key = saved_p_model
+                                st.session_state.pref_phone_brand = saved_p_brand
+                                st.session_state.pref_phone_model = saved_p_model
 
                             st.success(f"🎉 {st.session_state.current_user}님, 환영합니다!")
                             st.rerun()
@@ -494,7 +501,6 @@ if not st.session_state.logged_in:
                 reg_name = st.text_input("작업자 성함 / 공장명", key="reg_name_input")
                 reg_email = st.text_input("사용할 이메일", key="reg_email_input")
                 reg_pw = st.text_input("사용할 비밀번호 (6자리 이상)", type="password", key="reg_pw_input")
-                
                 reg_submitted = st.form_submit_button("📝 테스터 등록 신청", use_container_width=True)
                 
                 if reg_submitted:
@@ -505,107 +511,67 @@ if not st.session_state.logged_in:
                     elif supabase_client:
                         try:
                             res = supabase_client.auth.sign_up({
-                                "email": reg_email.strip(),
-                                "password": reg_pw.strip(),
-                                "options": {
-                                    "data": {"display_name": reg_name.strip()}
-                                }
+                                "email": reg_email.strip(), "password": reg_pw.strip(),
+                                "options": {"data": {"display_name": reg_name.strip()}}
                             })
                             st.success("🎉 Smart-Paint 클라우드에 성공적으로 회원등록 되었습니다! [로그인] 탭에서 로그인해 주세요.")
                         except Exception as e:
                             st.error(f"회원가입 실패: {e}")
                     else:
                         st.error("⚠️ Supabase DB가 연결되어 있지 않습니다.")
-
     st.stop()
 
 # ----------------------------------------------------
-# 4. Supabase DB 데이터 저장 (20개 초과 시 자동 밀어내기 삭제 - FIFO)
+# 4. Supabase DB 데이터 저장 (20개 초과 시 자동 삭제)
 # ----------------------------------------------------
 MAX_SAVE_LIMIT = 20
 
 def db_fetch_user_history():
-    if not supabase_client:
-        return []
+    if not supabase_client: return []
     try:
-        res = supabase_client.table("work_history") \
-            .select("id, title, color_name, brand, stage, recipe_json, ai_result, created_at") \
-            .eq("username", st.session_state.current_user) \
-            .order("created_at", desc=True) \
-            .execute()
+        res = supabase_client.table("work_history").select("id, title, color_name, brand, stage, recipe_json, ai_result, created_at").eq("username", st.session_state.current_user).order("created_at", desc=True).execute()
         return res.data
-    except Exception:
-        return []
+    except: return []
 
 def db_save_work(title_name, current_brand):
     if not title_name.strip():
         st.error("⚠️ 저장 제목을 입력해 주세요.")
         return False
-    
     user_history = db_fetch_user_history()
-    
-    # 📌 사용자별 저장 개수 초과 시 가장 오래된 데이터 자동 삭제 (FIFO 밀어내기)
     if supabase_client and len(user_history) >= MAX_SAVE_LIMIT:
         oldest_items = user_history[MAX_SAVE_LIMIT - 1:]
         try:
             for old_item in oldest_items:
                 supabase_client.table("work_history").delete().eq("id", old_item['id']).execute()
             st.toast(f"♻️ 저장 한도({MAX_SAVE_LIMIT}개) 초과로 가장 과거 데이터를 지우고 새 데이터를 저장합니다.", icon="♻️")
-        except Exception as e:
-            st.warning(f"오래된 데이터 자동 지우기 실패: {e}")
+        except: pass
 
-    recipe_json_str = st.session_state.recipe_table_df.to_json(orient="records")
-    
     data_payload = {
-        "username": st.session_state.current_user,
-        "title": title_name.strip(),
-        "brand": current_brand,
-        "color_name": st.session_state.color_name,
-        "stage": st.session_state.current_stage,
-        "recipe_json": recipe_json_str,
-        "ai_result": st.session_state.ai_result_text,
-        "is_passed": st.session_state.is_passed
+        "username": st.session_state.current_user, "title": title_name.strip(), "brand": current_brand,
+        "color_name": st.session_state.color_name, "stage": st.session_state.current_stage,
+        "recipe_json": st.session_state.recipe_table_df.to_json(orient="records"),
+        "ai_result": st.session_state.ai_result_text, "is_passed": st.session_state.is_passed
     }
     
     if supabase_client:
         try:
             supabase_client.table("work_history").insert(data_payload).execute()
-            current_count = min(len(user_history) + 1, MAX_SAVE_LIMIT)
-            st.toast(f"☁️ '{title_name}' 클라우드 DB 저장 완료! ({current_count}/{MAX_SAVE_LIMIT}개)", icon="💾")
+            st.toast(f"☁️ '{title_name}' 클라우드 DB 저장 완료! ({min(len(user_history) + 1, MAX_SAVE_LIMIT)}/{MAX_SAVE_LIMIT}개)", icon="💾")
             return True
-        except Exception as e:
-            st.error(f"DB 저장 오류: {e}")
-            return False
+        except: return False
     else:
-        st.toast(f"💾 메모리에 '{title_name}' 내역이 저장되었습니다 (DB 미설정).", icon="⚠️")
+        st.toast(f"💾 메모리에 '{title_name}' 내역 저장완료.", icon="⚠️")
         return True
 
 def db_get_successful_recipes_rag(brand_name, color_name):
-    """과거 동일 색상의 성공(Delta E <= 0.5) 족보를 DB에서 자동 검색하여 AI 지시문에 주입"""
-    if not supabase_client or not color_name.strip():
-        return ""
-    
+    if not supabase_client or not color_name.strip(): return ""
     try:
-        response = supabase_client.table("work_history") \
-            .select("recipe_json, color_name, stage, created_at") \
-            .eq("brand", brand_name) \
-            .ilike("color_name", f"%{color_name.strip()}%") \
-            .eq("is_passed", True) \
-            .order("created_at", desc=True) \
-            .limit(3) \
-            .execute()
-        
-        records = response.data
-        if not records:
-            return ""
-        
+        res = supabase_client.table("work_history").select("recipe_json, color_name, stage, created_at").eq("brand", brand_name).ilike("color_name", f"%{color_name.strip()}%").eq("is_passed", True).order("created_at", desc=True).limit(3).execute()
+        if not res.data: return ""
         success_text = "\n\n[★ 축적된 클라우드 DB의 과거 동일/유사 색상 성공 족보 레시피 (Delta E <= 0.5 참조)]\n"
-        for idx, r in enumerate(records, 1):
-            success_text += f" 성공사례 {idx} [{r['color_name']} / {r['stage']}차 조색]: {r['recipe_json']}\n"
-        
+        for idx, r in enumerate(res.data, 1): success_text += f" 성공사례 {idx} [{r['color_name']} / {r['stage']}차 조색]: {r['recipe_json']}\n"
         return success_text
-    except Exception:
-        return ""
+    except: return ""
 
 def db_delete_work(history_id, history_title):
     if supabase_client:
@@ -613,20 +579,17 @@ def db_delete_work(history_id, history_title):
             supabase_client.table("work_history").delete().eq("id", history_id).execute()
             st.sidebar.success(f"🗑️ '{history_title}' 데이터가 삭제되었습니다.")
             st.rerun()
-        except Exception as e:
-            st.sidebar.error(f"삭제 오류: {e}")
+        except: pass
 
 # ----------------------------------------------------
-# 5. 사이드바 구성 (저장 내역 불러오기 및 계정 관리 - 중복설정창 완벽제거)
+# 5. 사이드바 구성 (순수하게 보관함 및 계정만 남김)
 # ----------------------------------------------------
 with st.sidebar:
     st.markdown(f"👤 **접속 계정**: `{st.session_state.current_user}`")
     st.caption(f"📧 `{st.session_state.user_email}`")
     
-    if supabase_client:
-        st.caption("🟢 **Supabase Auth & DB**: 연결 완료")
-    else:
-        st.caption("🟡 **오프라인 데모 모드**")
+    if supabase_client: st.caption("🟢 **Supabase Auth & DB**: 연결 완료")
+    else: st.caption("🟡 **오프라인 데모 모드**")
 
     if st.button("🔒 로그아웃", use_container_width=True):
         st.session_state.logged_in = False
@@ -635,8 +598,6 @@ with st.sidebar:
         st.rerun()
 
     st.markdown("---")
-    
-    # DB 저장 목록 조회 및 불러오기/삭제 기능
     st.header("📁 저장된 내역 불러오기")
     db_history = db_fetch_user_history()
     
@@ -646,23 +607,17 @@ with st.sidebar:
         selected_idx = st.selectbox("불러올 작업 선택", range(len(titles)), format_func=lambda x: titles[x], key="db_select_box")
         
         selected_row = db_history[selected_idx]
-        
         col_s1, col_s2 = st.columns(2)
         with col_s1:
             if st.button("📂 불러오기", use_container_width=True):
                 loaded_color = selected_row.get("color_name", "")
                 st.session_state.color_name = loaded_color
                 st.session_state.color_name_input_field = loaded_color
-                
                 st.session_state.current_stage = selected_row["stage"]
-                # 불러오기 시 브랜드도 임시 변경
-                st.session_state.selected_brand_key = selected_row["brand"]
+                st.session_state.pref_brand = selected_row["brand"] # 불러오기 시 브랜드 복구
                 st.session_state.ai_result_text = selected_row["ai_result"]
-                try:
-                    df_loaded = pd.read_json(io.StringIO(selected_row["recipe_json"]))
-                    st.session_state.recipe_table_df = df_loaded
-                except Exception:
-                    pass
+                try: st.session_state.recipe_table_df = pd.read_json(io.StringIO(selected_row["recipe_json"]))
+                except: pass
                 st.sidebar.success(f"📂 DB에서 '{selected_row['title']}' 내역을 불러왔습니다.")
                 st.rerun()
         with col_s2:
@@ -678,120 +633,69 @@ with st.sidebar:
         st.sidebar.success("✨ 새로운 작업 화면으로 초기화되었습니다.")
         st.rerun()
 
-# --- 현재 세션 값 매핑 (사이드바의 중복값 차단) ---
-p_brand_key = st.session_state.phone_brand_key
-p_model_key = st.session_state.phone_model_key
+# ----------------------------------------------------
+# ★ 모바일/메인 화면 상단: 내 설정 표시 및 변경 바
+# ----------------------------------------------------
+selected_brand = st.session_state.pref_brand
+selected_camera = f"{st.session_state.pref_phone_brand} {st.session_state.pref_phone_model}"
 
-# 안전장치: 혹시라도 기종 목록이 어긋나면 기본값 복구
-if p_model_key not in CAMERA_PROFILES.get(p_brand_key, {}):
-    p_brand_key = list(CAMERA_PROFILES.keys())[0]
-    p_model_key = list(CAMERA_PROFILES[p_brand_key].keys())[0]
-    st.session_state.phone_brand_key = p_brand_key
-    st.session_state.phone_model_key = p_model_key
-
-selected_brand = st.session_state.selected_brand_key
-selected_camera = f"{p_brand_key} {p_model_key}"
-selected_camera_profile = CAMERA_PROFILES[p_brand_key][p_model_key]
-
-# 메인 헤더
 st.markdown(f"""<div class="noroo-header-box">
     <span class="noroo-brand-name">MULTI-BRAND AUTO COLOR SYSTEM</span>
     <h1 class="noroo-main-title">[{selected_brand}] AI 스마트 조색 & 결함 진단</h1>
 </div>""", unsafe_allow_html=True)
 
-# ----------------------------------------------------
-# ★ 모바일 전용 상단 설정 확인/변경 대시보드 (클라우드 동기화 추가) ★
-# ----------------------------------------------------
 st.write("")
-with st.expander(f"⚙️ 내 설정 (클라우드 동기화): [{selected_brand}] | [{selected_camera}] (터치하여 변경)", expanded=False):
+with st.expander(f"⚙️ 내 설정 (클라우드 자동저장): [{selected_brand}] | [{selected_camera}] (터치하여 변경)", expanded=False):
     col_mb1, col_mb2 = st.columns(2)
     
     with col_mb1:
         st.markdown("##### 🎨 도료 브랜드 설정")
-        selected_brand_input = st.selectbox(
-            "브랜드 변경",
-            valid_brands,
-            index=valid_brands.index(st.session_state.selected_brand_key),
-            key="main_brand_selectbox"
-        )
-        if selected_brand_input != st.session_state.selected_brand_key:
-            st.session_state.selected_brand_key = selected_brand_input
-            # ★ 변경 시 클라우드 프로필에 즉시 자동 저장
-            if supabase_client:
-                try: supabase_client.auth.update_user({"data": {"pref_brand": selected_brand_input}})
-                except: pass
-            st.rerun()
-            
-        b_info = BRAND_CONFIGS[st.session_state.selected_brand_key]
+        # Streamlit의 key와 state를 직접 묶어서 100% 동기화 보장 (충돌/초기화 방지)
+        st.selectbox("브랜드 변경", valid_brands, key="pref_brand", on_change=update_brand_to_db)
+        b_info = BRAND_CONFIGS[st.session_state.pref_brand]
         st.info(f"📌 **브랜드 수칙**: {b_info['special_rules']}\n\n🧪 **희석 수칙**: {b_info['thinner_info']}")
 
     with col_mb2:
         st.markdown("##### 📱 스마트폰 카메라 보정 설정")
-        new_p_brand = st.selectbox("제조사 선택", list(CAMERA_PROFILES.keys()), index=list(CAMERA_PROFILES.keys()).index(st.session_state.phone_brand_key), key="main_p_brand_select")
-        p_models = list(CAMERA_PROFILES[new_p_brand].keys())
+        st.selectbox("제조사 선택", list(CAMERA_PROFILES.keys()), key="pref_phone_brand", on_change=update_phone_to_db)
         
-        curr_m_idx = p_models.index(st.session_state.phone_model_key) if st.session_state.phone_model_key in p_models else 0
-        new_p_model = st.selectbox("기종 선택", p_models, index=curr_m_idx, key="main_p_model_select")
-        
-        if new_p_brand != st.session_state.phone_brand_key or new_p_model != st.session_state.phone_model_key:
-            st.session_state.phone_brand_key = new_p_brand
-            st.session_state.phone_model_key = new_p_model
-            # ★ 변경 시 클라우드 프로필에 즉시 자동 저장
-            if supabase_client:
-                try: supabase_client.auth.update_user({"data": {"pref_phone_brand": new_p_brand, "pref_phone_model": new_p_model}})
-                except: pass
-            st.rerun()
-            
-        st.caption(f"🎯 **카메라 보정 알고리즘**: {CAMERA_PROFILES[new_p_brand][new_p_model]}")
+        p_models = list(CAMERA_PROFILES[st.session_state.pref_phone_brand].keys())
+        st.selectbox("기종 선택", p_models, key="pref_phone_model", on_change=update_phone_to_db)
+        st.caption(f"🎯 **카메라 보정 알고리즘**: {CAMERA_PROFILES[st.session_state.pref_phone_brand][st.session_state.pref_phone_model]}")
 
 st.markdown("---")
 
 # ----------------------------------------------------
 # 6. 메인 탭 구성
 # ----------------------------------------------------
-tab_tuning, tab_defect = st.tabs([f"🎨 {selected_brand} AI 미세 조색", "🔍 도장 결함 진단"])
+tab_tuning, tab_defect = st.tabs([f"🎨 {st.session_state.pref_brand} AI 미세 조색", "🔍 도장 결함 진단"])
 
 with tab_tuning:
     current_stage = st.session_state.current_stage
     is_stage_1 = (current_stage == 1)
-    
     stage_code = f"{current_stage}차"
     prev_stage_code = "1차" if current_stage == 2 else f"{current_stage-1}차"
     
-    st.markdown(f'<div class="stage-badge">📍 현재 진행 단계: {selected_brand} {stage_code} 조색 프로세스</div>', unsafe_allow_html=True)
-    
-    # ----------------------------------------------------
-    # 0. 차종 및 색상명 입력 + 클라우드 저장 버튼
-    # ----------------------------------------------------
+    st.markdown(f'<div class="stage-badge">📍 현재 진행 단계: {st.session_state.pref_brand} {stage_code} 조색 프로세스</div>', unsafe_allow_html=True)
     st.subheader("0. 차종 및 색상명/코드 입력")
     
     col_c1, col_c2 = st.columns([3.5, 1])
-    
     with col_c1:
-        input_color_val = st.text_input(
-            "차종 및 목표 색상코드/색상명을 입력하세요",
-            value=st.session_state.color_name,
-            placeholder="예: 기아 ABT, 현대 SWP, K5 스노우화이트펄 등",
-            key="color_name_input_field"
-        )
-        st.session_state.color_name = input_color_val
+        st.session_state.color_name = st.text_input("차종 및 목표 색상코드/색상명을 입력하세요", value=st.session_state.color_name, placeholder="예: 기아 ABT, 현대 SWP 등", key="color_name_input_field")
 
     with col_c2:
-        st.write("") # 버튼 위치 높이 맞춤용 빈 공백
+        st.write("") 
         st.write("")
-        today_date_str = datetime.now().strftime("%Y-%m-%d")
         color_code_str = st.session_state.color_name.strip()
-        auto_default_title = f"{today_date_str}_{color_code_str}" if color_code_str else f"{today_date_str}_색상미지정"
+        auto_default_title = f"{datetime.now().strftime('%Y-%m-%d')}_{color_code_str}" if color_code_str else f"{datetime.now().strftime('%Y-%m-%d')}_색상미지정"
         
         if st.button("💾 클라우드 저장", type="primary", use_container_width=True, key="btn_step0_save"):
-            if not color_code_str:
-                st.warning("⚠️ 차종 및 색상명을 먼저 입력한 후 저장해 주세요.")
+            if not color_code_str: st.warning("⚠️ 차종 및 색상명을 먼저 입력한 후 저장해 주세요.")
             else:
-                db_save_work(auto_default_title, selected_brand)
+                db_save_work(auto_default_title, st.session_state.pref_brand)
                 st.rerun()
 
     st.markdown("---")
-
     col_t1, col_t2 = st.columns(2)
     
     # 1. 목표 차체 사진
@@ -799,31 +703,25 @@ with tab_tuning:
         st.write("1. 목표 차체/판넬 사진 (Target)")
         st.markdown("""<div class="distance-guide-box">
             <b>📏 촬영 가이드</b>: 차체 표면으로부터 <b>약 15cm 거리</b>에서 수직(90°)으로 촬영해 주세요.<br>
-            💡 <b>모바일 후면 카메라 팁</b>: [📷 앱 내 직접 촬영] 시 화면의 <b>카메라 전환(🔄) 버튼</b>을 누르시거나, <b>[📁 갤러리/후면 카메라]</b> 탭 선택 후 [카메라]를 누르시면 스마트폰 기본 후면 카메라가 즉시 실행됩니다.
+            💡 <b>모바일 후면 카메라 팁</b>: [📷 앱 내 직접 촬영] 시 화면의 <b>카메라 전환(🔄) 버튼</b>을 누르시거나, <b>[📁 갤러리/후면 카메라]</b> 탭 선택 후 [카메라]를 누르시면 됩니다.
         </div>""", unsafe_allow_html=True)
         
         if st.session_state.target_img_bytes is None:
             t_input_tab1, t_input_tab2 = st.tabs(["📷 앱 내 직접 촬영", "📁 갤러리 / 후면 카메라"])
-            
             with t_input_tab1:
                 cam_target = st.camera_input("목표 차체 촬영 (거리 15cm)", key="cam_target_input")
                 if cam_target:
                     st.session_state.target_img_bytes = cam_target.getvalue()
                     st.session_state.target_img_name = "카메라 직접 촬영"
                     st.rerun()
-                    
             with t_input_tab2:
-                uploaded_target = st.file_uploader("목표 차체 사진 파일 선택 (후면 카메라 추천)", type=["jpg", "png", "jpeg"], key="file_target_input")
+                uploaded_target = st.file_uploader("목표 차체 사진 파일 (후면 카메라 추천)", type=["jpg", "png", "jpeg"], key="file_target_input")
                 if uploaded_target:
                     st.session_state.target_img_bytes = uploaded_target.getvalue()
                     st.session_state.target_img_name = uploaded_target.name
                     st.rerun()
         else:
-            st.image(
-                load_and_resize(st.session_state.target_img_bytes),
-                caption=f"목표 색상 [{st.session_state.color_name if st.session_state.color_name else '미지정'}] (Target) - [{selected_camera}]",
-                use_container_width=True
-            )
+            st.image(load_and_resize(st.session_state.target_img_bytes), caption=f"목표 색상 [{st.session_state.color_name if st.session_state.color_name else '미지정'}] (Target) - [{selected_camera}]", use_container_width=True)
             if st.button("🔄 목표 사진 다시 찍기"):
                 st.session_state.target_img_bytes = None
                 st.rerun()
@@ -833,204 +731,117 @@ with tab_tuning:
         st.write(f"2. {stage_code} 도장 시편 사진 (Sample)")
         st.markdown("""<div class="distance-guide-box">
             <b>📏 촬영 가이드</b>: 시편 표면으로부터 <b>약 15cm 거리</b>에서 수직(90°)으로 촬영해 주세요.<br>
-            💡 <b>모바일 후면 카메라 팁</b>: [📷 앱 내 직접 촬영] 시 화면의 <b>카메라 전환(🔄) 버튼</b>을 누르시거나, <b>[📁 갤러리/후면 카메라]</b> 탭 선택 후 [카메라]를 누르시면 스마트폰 기본 후면 카메라가 즉시 실행됩니다.
+            💡 <b>모바일 후면 카메라 팁</b>: [📷 앱 내 직접 촬영] 시 화면의 <b>카메라 전환(🔄) 버튼</b>을 누르시거나, <b>[📁 갤러리/후면 카메라]</b> 탭 선택 후 [카메라]를 누르시면 됩니다.
         </div>""", unsafe_allow_html=True)
         
         s_input_tab1, s_input_tab2 = st.tabs(["📷 앱 내 직접 촬영", "📁 갤러리 / 후면 카메라"])
-        
         with s_input_tab1:
             cam_sample = st.camera_input(f"{stage_code} 시편 촬영 (거리 15cm)", key=f"cam_sample_{current_stage}")
-            if cam_sample:
-                st.session_state.temp_sample_bytes = cam_sample.getvalue()
-                
+            if cam_sample: st.session_state.temp_sample_bytes = cam_sample.getvalue()
         with s_input_tab2:
-            file_sample = st.file_uploader(f"{stage_code} 시편 파일 선택 (후면 카메라 추천)", type=["jpg", "png", "jpeg"], key=f"file_sample_{current_stage}")
-            if file_sample:
-                st.session_state.temp_sample_bytes = file_sample.getvalue()
+            file_sample = st.file_uploader(f"{stage_code} 시편 파일 (후면 카메라 추천)", type=["jpg", "png", "jpeg"], key=f"file_sample_{current_stage}")
+            if file_sample: st.session_state.temp_sample_bytes = file_sample.getvalue()
 
         if st.session_state.temp_sample_bytes:
-            st.image(
-                load_and_resize(st.session_state.temp_sample_bytes),
-                caption=f"{stage_code} 신규 도장 시편 (Sample) - [{selected_camera}]",
-                use_container_width=True
-            )
+            st.image(load_and_resize(st.session_state.temp_sample_bytes), caption=f"{stage_code} 신규 도장 시편 (Sample) - [{selected_camera}]", use_container_width=True)
 
-    # 3. 초선명 3분할 결합 정밀 확대 대조
+    # 3. 초선명 대조
     if not is_stage_1 and st.session_state.prev_sample_bytes and st.session_state.target_img_bytes and st.session_state.temp_sample_bytes:
         st.markdown("---")
         st.markdown(f"""<div class="comparison-card">
-            <h4 style="margin-top:0; color:#003375;">📱 [{selected_brand}] 초고화질 3분할 입자 정밀 대조 (3-Way Split View)</h4>
-            <p style="font-size:14px; color:#2D3748; margin-bottom:8px;">
-                <b>[좌: {prev_stage_code} 시편]</b> | <b>[중앙: 🎯 목표 차체({st.session_state.color_name if st.session_state.color_name else 'Target'})]</b> | <b>[우: {stage_code} 신규 시편]</b>
-            </p>
+            <h4 style="margin-top:0; color:#003375;">📱 [{st.session_state.pref_brand}] 초고화질 3분할 입자 정밀 대조</h4>
+            <p style="font-size:14px; color:#2D3748; margin-bottom:8px;"><b>[좌: {prev_stage_code} 시편]</b> | <b>[중앙: 🎯 목표 차체]</b> | <b>[우: {stage_code} 신규 시편]</b></p>
         </div>""", unsafe_allow_html=True)
-        
-        split_3way_img = create_3way_split_view(
-            st.session_state.prev_sample_bytes,
-            st.session_state.target_img_bytes,
-            st.session_state.temp_sample_bytes,
-            crop_ratio=0.4
-        )
-        
-        st.image(
-            split_3way_img,
-            caption=f"◀️ {prev_stage_code} 시편 | 🎯 목표 차체 [{st.session_state.color_name}] | {stage_code} 신규 시편 ▶️",
-            use_container_width=True
-        )
+        st.image(create_3way_split_view(st.session_state.prev_sample_bytes, st.session_state.target_img_bytes, st.session_state.temp_sample_bytes, crop_ratio=0.4), caption=f"◀️ {prev_stage_code} 시편 | 🎯 목표 차체 [{st.session_state.color_name}] | {stage_code} 신규 시편 ▶️", use_container_width=True)
 
     st.markdown("---")
-    
     col_r1, col_r2 = st.columns([1.2, 0.8])
 
-    # 4. 배합 레시피 영역
+    # 4. 배합 레시피
     with col_r1:
         if is_stage_1:
-            st.subheader(f"3. 1차 기본 배합 레시피 ({selected_brand})")
-            
+            st.subheader(f"3. 1차 기본 배합 레시피 ({st.session_state.pref_brand})")
             r_input_tab1, r_input_tab2 = st.tabs(["📷 카드 촬영 / 업로드 (추천)", "✍️ 텍스트 직접 작성"])
-            
             recipe_img_bytes = None
-            recipe_text = ""
-
             with r_input_tab1:
                 cam_recipe = st.camera_input("배합표/시편 카드 촬영", key="cam_recipe_1차")
                 file_recipe = st.file_uploader("또는 카드 사진 파일 업로드", type=["jpg", "png", "jpeg"], key="file_recipe_1차")
-                
-                if cam_recipe:
-                    recipe_img_bytes = cam_recipe.getvalue()
-                elif file_recipe:
-                    recipe_img_bytes = file_recipe.getvalue()
+                if cam_recipe: recipe_img_bytes = cam_recipe.getvalue()
+                elif file_recipe: recipe_img_bytes = file_recipe.getvalue()
 
                 if recipe_img_bytes:
                     st.image(Image.open(io.BytesIO(recipe_img_bytes)), caption="촬영/업로드된 배합표 카드", width=350)
-                    
                     if st.button("🔍 카드 사진에서 배합표 읽어와 표에 반영하기", key="btn_ocr_recipe"):
-                        with st.spinner(f"AI가 [{selected_brand}] 카드 속 안료 코드와 수치를 분석 중입니다..."):
-                            extracted_df = extract_df_from_recipe_image(client, recipe_img_bytes, selected_brand)
+                        with st.spinner(f"AI가 [{st.session_state.pref_brand}] 카드 속 수치를 분석 중입니다..."):
+                            extracted_df = extract_df_from_recipe_image(client, recipe_img_bytes, st.session_state.pref_brand)
                             if extracted_df is not None and not extracted_df.empty:
                                 st.session_state.recipe_table_df = extracted_df
                                 st.success("🎉 배합표 수치가 성공적으로 읽혀 아래 표에 자동 입력되었습니다!")
                                 st.rerun()
-                            else:
-                                st.warning("⚠️ 사진에서 안료 수치를 완전히 읽지 못했습니다. 아래 표에 직접 입력해 주세요.")
-            
+                            else: st.warning("⚠️ 사진에서 안료 수치를 완전히 읽지 못했습니다. 아래 표에 직접 입력해 주세요.")
             with r_input_tab2:
-                recipe_text = st.text_area(
-                    "1차 배합 레시피 직접 작성",
-                    value="",
-                    placeholder=f"예: {BRAND_CONFIGS[selected_brand]['code_example']}",
-                    key="r_text_1차"
-                )
+                recipe_text = st.text_area("1차 배합 레시피 직접 작성", value="", placeholder=f"예: {BRAND_CONFIGS[st.session_state.pref_brand]['code_example']}", key="r_text_1차")
                 if recipe_text.strip():
-                    parsed_df = extract_recipe_df_from_ai_text(recipe_text, selected_brand)
-                    if parsed_df is not None and not parsed_df.empty:
-                        st.session_state.recipe_table_df = parsed_df
+                    parsed_df = extract_recipe_df_from_ai_text(recipe_text, st.session_state.pref_brand)
+                    if parsed_df is not None and not parsed_df.empty: st.session_state.recipe_table_df = parsed_df
 
-            st.write(f"📋 **1차 확정 배합표 ({selected_brand}):**")
-            edited_1st_df = st.data_editor(
-                st.session_state.recipe_table_df,
-                use_container_width=True,
-                num_rows="dynamic",
-                key="editor_1차_preview"
-            )
-            st.session_state.recipe_table_df = edited_1st_df
-
+            st.write(f"📋 **1차 확정 배합표 ({st.session_state.pref_brand}):**")
+            st.session_state.recipe_table_df = st.data_editor(st.session_state.recipe_table_df, use_container_width=True, num_rows="dynamic", key="editor_1차_preview")
         else:
-            st.subheader(f"3. {prev_stage_code} 확정 배합 레시피 ({selected_brand})")
-            edited_df = st.data_editor(
-                st.session_state.recipe_table_df,
-                use_container_width=True,
-                num_rows="dynamic",
-                key=f"editor_{stage_code}"
-            )
-            st.session_state.recipe_table_df = edited_df
+            st.subheader(f"3. {prev_stage_code} 확정 배합 레시피 ({st.session_state.pref_brand})")
+            st.session_state.recipe_table_df = st.data_editor(st.session_state.recipe_table_df, use_container_width=True, num_rows="dynamic", key=f"editor_{stage_code}")
 
     with col_r2:
         st.subheader(f"4. {stage_code} 목표 중량 및 측색 수치")
-        
-        target_total_weight = st.number_input(
-            f"🎯 새로 배합할 총 중량 (g)",
-            min_value=10.0,
-            max_value=10000.0,
-            value=100.0,
-            step=10.0,
-            key=f"weight_{stage_code}"
-        )
-
-        lab_data = st.text_input(
-            "측색기 $L^*a*b^*$ 수치 (선택 사항)",
-            placeholder="예: [목표] L*: 45.2, a*: 12.3 / [시편] L*: 43.8, a*: 13.5",
-            key=f"lab_{stage_code}"
-        )
+        target_total_weight = st.number_input(f"🎯 새로 배합할 총 중량 (g)", min_value=10.0, max_value=10000.0, value=100.0, step=10.0, key=f"weight_{stage_code}")
+        lab_data = st.text_input("측색기 $L^*a*b^*$ 수치 (선택 사항)", placeholder="예: [목표] L*: 45.2, a*: 12.3 / [시편] L*: 43.8, a*: 13.5", key=f"lab_{stage_code}")
 
     st.markdown("---")
 
-    # 5. AI 실행 (과거 성공 DB 족보 RAG 자동 검색 연동)
-    btn_label = f"🚀 [{selected_brand}] {stage_code} AI 미세 조색 실행"
-
+    # 5. AI 실행
+    btn_label = f"🚀 [{st.session_state.pref_brand}] {stage_code} AI 미세 조색 실행"
     if st.button(btn_label, type="primary", use_container_width=True):
-        if st.session_state.target_img_bytes is None:
-            st.warning("⚠️ 목표 차체/판넬 사진(Target)을 촬영하거나 업로드해 주세요.")
-        elif st.session_state.temp_sample_bytes is None:
-            st.warning(f"⚠️ {stage_code} 도장 시편 사진(Sample)을 촬영하거나 업로드해 주세요.")
-        elif is_stage_1 and st.session_state.recipe_table_df.empty:
-            st.warning("⚠️ 배합표 카드를 인식시키거나 안료 수치를 입력해 주세요.")
+        if st.session_state.target_img_bytes is None: st.warning("⚠️ 목표 차체/판넬 사진(Target)을 촬영하거나 업로드해 주세요.")
+        elif st.session_state.temp_sample_bytes is None: st.warning(f"⚠️ {stage_code} 도장 시편 사진(Sample)을 촬영하거나 업로드해 주세요.")
+        elif is_stage_1 and st.session_state.recipe_table_df.empty: st.warning("⚠️ 배합표 카드를 인식시키거나 안료 수치를 입력해 주세요.")
         else:
             with st.spinner(f"AI가 클라우드 DB의 과거 성공 족보 데이터를 실시간 조회하여 분석 중입니다..."):
                 try:
                     img_target = load_and_resize(st.session_state.target_img_bytes)
                     img_current = load_and_resize(st.session_state.temp_sample_bytes)
-
-                    contents_payload = [img_target, img_current]
                     table_str = st.session_state.recipe_table_df.to_string(index=False)
-
-                    # RAG: 과거 성공 족보 레시피 조회
-                    rag_successful_recipes = db_get_successful_recipes_rag(selected_brand, st.session_state.color_name)
+                    rag_successful_recipes = db_get_successful_recipes_rag(st.session_state.pref_brand, st.session_state.color_name)
 
                     brand_system_prompt = f"""
-                    당신은 [{selected_brand}] 페인트 도장 및 조색 분야 최고 기술 전문가입니다.
-                    첫 번째 이미지('목표 색상')와 두 번째 이미지('{stage_code} 도장 시편')를 CIE L*a*b* 색공간 기준에서 정밀 분석하세요.
+                    당신은 [{st.session_state.pref_brand}] 페인트 도장 및 조색 분야 최고 기술 전문가입니다.
+                    첫 번째 이미지('목표 색상')와 두 번째 이미지('{stage_code} 도장 시편')를 정밀 분석하세요.
 
                     [선택 브랜드 및 현장 기술 수칙]
-                    - **선택 브랜드**: {selected_brand}
-                    - **목표 차종 및 색상명/코드**: {st.session_state.color_name if st.session_state.color_name else '미지정'}
-                    - **브랜드 특수 수칙**: {BRAND_CONFIGS[selected_brand]['special_rules']}
-                    - **희석제 수칙**: {BRAND_CONFIGS[selected_brand]['thinner_info']}
-                    - **현재 조색 진행 단계**: {stage_code} 조색
-                    - **이전 배합표 데이터**:
-                    {table_str}
-                    - **새로 배합할 목표 총 중량**: {target_total_weight}g
+                    - **선택 브랜드**: {st.session_state.pref_brand}
+                    - **목표 차종/색상명**: {st.session_state.color_name if st.session_state.color_name else '미지정'}
+                    - **브랜드 특수 수칙**: {BRAND_CONFIGS[st.session_state.pref_brand]['special_rules']}
+                    - **희석제 수칙**: {BRAND_CONFIGS[st.session_state.pref_brand]['thinner_info']}
+                    - **현재 진행 단계**: {stage_code} 조색
+                    - **이전 배합표**: \n{table_str}
+                    - **목표 총 중량**: {target_total_weight}g
                     - **촬영 기기 정보**: {selected_camera}
-                    - **스마트폰 카메라 보정 수칙**: {selected_camera_profile}
+                    - **스마트폰 카메라 보정 수칙**: {CAMERA_PROFILES[st.session_state.pref_phone_brand][st.session_state.pref_phone_model]}
                     - **측색 수치**: {lab_data if lab_data else '없음 (CIE L*a*b* 정밀 추정 분석)'}
                     {rag_successful_recipes}
 
                     [★ 핵심: 색공간 분석 및 Delta E <= 0.5 판정 규칙 ★]
                     1. CIE L*a*b* 정밀 평가 (Delta L*, Delta a*, Delta b*, Flop 감도 오차)
-                    2. 두 사진의 구분 불가능 시 **예상 Delta E <= 0.5** 판정.
-                    3. Delta E <= 0.5 이면 상단에 `[판정: 🎉 조색 완벽 합격 (Delta E <= 0.5)]` 명시 및 변동 0.00g 유지.
-                    4. Delta E > 0.5 이면 상단에 `[판정: 🔺 미세 보정 필요]` 명시 후 오차 보정 신규 배합 산출.
+                    2. 두 사진 구분 불가능 시 **예상 Delta E <= 0.5** 판정.
+                    3. 합격 시 상단에 `[판정: 🎉 조색 완벽 합격 (Delta E <= 0.5)]` 명시.
+                    4. 불합격 시 상단에 `[판정: 🔺 미세 보정 필요]` 명시 후 신규 배합 산출.
 
                     [작성 양식]
-                    1. **CIE L*a*b* 색공간 평가 및 Delta E**:
-                       - **추정 색차 (Delta E)**: x.xx
-                       - **최종 판정**: [판정: 🎉 조색 완벽 합격 (Delta E <= 0.5)] 또는 [판정: 🔺 미세 보정 필요]
-                       - **명도/색상/Flop 오차 상세**
-                    2. **[{selected_brand}] 배합 변경 처방 이유**:
-                    3. **📊 AI {prev_stage_code} vs {stage_code} 신규 배합 대조표 (목표 총량 {target_total_weight}g 기준)**:
-                       | 안료 코드 | {prev_stage_code} 중량 (g) | {stage_code} 신규 중량 (g) | 가감 차이 (g) | 처방 역할 |
-                    4. **[{selected_brand}] 전용 교반 및 희석 지침**:
-                       - 희석제 권장 혼합비 ({BRAND_CONFIGS[selected_brand]['thinner_info']} 명시)
-                       - 노즐 거리, 에어 압력 및 건조 수칙
+                    1. **CIE L*a*b* 평가**: 추정 색차 (Delta E), 최종 판정, 명도/색상 오차 상세
+                    2. **[{st.session_state.pref_brand}] 배합 변경 처방 이유**:
+                    3. **📊 AI 신규 배합 대조표 ({target_total_weight}g 기준)**: | 안료 코드 | {prev_stage_code} 중량 | {stage_code} 신규 중량 | 차이 | 처방 역할 |
+                    4. **교반 및 희석 지침**: 권장 혼합비 명시
                     """
-
-                    contents_payload.append(brand_system_prompt)
-
-                    response = client.models.generate_content(
-                        model="gemini-3.5-flash",
-                        contents=contents_payload
-                    )
-
+                    response = client.models.generate_content(model="gemini-3.5-flash", contents=[img_target, img_current, brand_system_prompt])
                     st.session_state.ai_result_text = response.text
                     
                     if "조색 완벽 합격" in response.text or "Delta E <= 0.5" in response.text:
@@ -1040,97 +851,55 @@ with tab_tuning:
                         st.session_state.is_passed = False
                         st.session_state.show_next_btn = True
 
-                    parsed_df = extract_recipe_df_from_ai_text(response.text, selected_brand)
-                    if parsed_df is not None and not parsed_df.empty:
-                        st.session_state.recipe_table_df = parsed_df
-
-                except APIError as e:
-                    st.error(f"API 오류가 발생했습니다: {e}")
+                    parsed_df = extract_recipe_df_from_ai_text(response.text, st.session_state.pref_brand)
+                    if parsed_df is not None and not parsed_df.empty: st.session_state.recipe_table_df = parsed_df
+                except APIError as e: st.error(f"API 오류가 발생했습니다: {e}")
 
     # 6. 결과 출력
     if st.session_state.ai_result_text:
-        st.markdown(f"### 📊 [{selected_brand}] [{st.session_state.color_name}] AI 색공간 분석 및 리포트")
+        st.markdown(f"### 📊 [{st.session_state.pref_brand}] [{st.session_state.color_name}] AI 색공간 분석 리포트")
         st.markdown(st.session_state.ai_result_text)
-
         if st.session_state.is_passed:
             st.balloons()
             st.success("🎉 Delta E <= 0.5 이하로 조색이 완벽히 합격 처리되었습니다! 해당 레시피가 클라우드 DB에 '성공 족보'로 등록되었습니다.")
-
     if st.session_state.show_next_btn and not st.session_state.is_passed:
         st.markdown("---")
-        st.button(
-            f"➡️ {current_stage + 1}차 조색으로 계속 진행하기",
-            on_click=go_next_stage,
-            type="primary",
-            use_container_width=True
-        )
+        st.button(f"➡️ {current_stage + 1}차 조색으로 계속 진행하기", on_click=go_next_stage, type="primary", use_container_width=True)
 
-# ====================================================
-# TAB 2: 도장 결함 진단 모듈
-# ====================================================
 with tab_defect:
-    st.subheader(f"🔍 [{selected_brand}] 도장 결함 원인 분석 및 재작업 가이드")
-    
+    st.subheader(f"🔍 [{st.session_state.pref_brand}] 도장 결함 원인 분석 및 재작업 가이드")
     col1, col2 = st.columns([1, 1])
-
     with col1:
         st.write("결함 부위 사진 입력")
         d_input_tab1, d_input_tab2 = st.tabs(["📷 앱 내 직접 촬영", "📁 갤러리 / 후면 카메라"])
-        
         defect_img_bytes = None
-
         with d_input_tab1:
             cam_defect = st.camera_input("결함 부위 직접 촬영", key="cam_defect_input")
-            if cam_defect:
-                defect_img_bytes = cam_defect.getvalue()
-
+            if cam_defect: defect_img_bytes = cam_defect.getvalue()
         with d_input_tab2:
-            file_defect = st.file_uploader("결함 부위 사진 파일 선택 (후면 카메라 추천)", type=["jpg", "png", "jpeg"], key="file_defect_input")
-            if file_defect:
-                defect_img_bytes = file_defect.getvalue()
-
-        if defect_img_bytes:
-            st.image(
-                load_and_resize(defect_img_bytes),
-                caption=f"진단 대상 결함 이미지 - [{selected_camera}]",
-                use_container_width=True
-            )
+            file_defect = st.file_uploader("결함 부위 사진 파일 선택", type=["jpg", "png", "jpeg"], key="file_defect_input")
+            if file_defect: defect_img_bytes = file_defect.getvalue()
+        if defect_img_bytes: st.image(load_and_resize(defect_img_bytes), caption=f"진단 대상 결함 이미지 - [{selected_camera}]", use_container_width=True)
 
     with col2:
-        defect_context = st.text_area(
-            "작업 환경 및 현장 증상 요약",
-            placeholder="예: 클리어 코트 도포 후 오렌지필 현상 발생. 건조 온도 60도, 스프레이 압력 2.0bar."
-        )
+        defect_context = st.text_area("작업 환경 및 현장 증상 요약", placeholder="예: 클리어 코트 도포 후 오렌지필 현상 발생. 건조 온도 60도.")
 
     if st.button("🚨 결함 진단 실행", type="primary", use_container_width=True):
         if defect_img_bytes:
             with st.spinner("AI가 결함 형태 및 작업 환경을 분석 중입니다..."):
                 try:
                     img = load_and_resize(defect_img_bytes)
-                    
                     defect_prompt = f"""
                     당신은 자동차 도장 및 표면처리 최고 전문가입니다.
                     전달된 결함 부위 이미지와 작업 환경을 분석해 진단 리포트를 작성해 주세요.
-                    
-                    - 사용 도료 브랜드: {selected_brand}
-                    - 촬영 기기: {selected_camera} ({selected_camera_profile})
+                    - 사용 도료 브랜드: {st.session_state.pref_brand}
+                    - 촬영 기기: {selected_camera} ({CAMERA_PROFILES[st.session_state.pref_phone_brand][st.session_state.pref_phone_model]})
                     - 현장 정보: {defect_context}
-
-                    아래 항목으로 명확하게 답변하세요:
-                    1. 진단된 결함명 (오렌지필, 핀홀, 흘러내림, 백화 현상 등)
-                    2. 추정 원인 (샌딩, 토출량, 희석비 오차 등)
-                    3. 즉각적인 재작업 솔루션
-                    4. [{selected_brand}] 전용 예방 대책 및 스프레이 세팅 권장 값
+                    
+                    아래 항목으로 답변하세요: 1. 결함명 2. 원인 3. 재작업 솔루션 4. [{st.session_state.pref_brand}] 전용 예방 대책
                     """
-
-                    response = client.models.generate_content(
-                        model="gemini-3.5-flash",
-                        contents=[img, defect_prompt]
-                    )
+                    response = client.models.generate_content(model="gemini-3.5-flash", contents=[img, defect_prompt])
                     st.success("결함 진단 완료!")
                     st.markdown(response.text)
-
-                except APIError as e:
-                    st.error(f"오류가 발생했습니다: {e}")
-        else:
-            st.warning("⚠️ 결함 부위 사진을 촬영하거나 업로드해 주세요.")
+                except APIError as e: st.error(f"오류가 발생했습니다: {e}")
+        else: st.warning("⚠️ 결함 부위 사진을 촬영하거나 업로드해 주세요.")
