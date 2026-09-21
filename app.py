@@ -161,7 +161,7 @@ def extract_recipe_df_from_ai_text(text, brand_name):
             codes = [str(k).upper().strip() for k in data.keys()]
             weights = [float(v) for v in data.values()]
             if codes: return pd.DataFrame({"안료 코드": codes, "1차 배합 중량 (g)": weights})
-    except: pass
+    except Exception: pass
 
     pattern = BRAND_CONFIGS[brand_name]["regex_pattern"]
     matches = re.findall(pattern, text, re.IGNORECASE)
@@ -173,7 +173,7 @@ def extract_recipe_df_from_ai_text(text, brand_name):
                 weight = float(m[1])
                 if code not in seen and weight >= 0:
                     codes.append(code); weights.append(weight); seen.add(code)
-            except: continue
+            except Exception: continue
         if codes: return pd.DataFrame({"안료 코드": codes, "1차 배합 중량 (g)": weights})
     return None
 
@@ -203,7 +203,7 @@ client = genai.Client(api_key=api_key)
 supabase_client = None
 if HAS_SUPABASE_LIB and "SUPABASE_URL" in st.secrets and "SUPABASE_KEY" in st.secrets:
     try: supabase_client = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
-    except: pass
+    except Exception: pass
 
 # --- 세션 상태 완벽 초기화 ---
 valid_brands = list(BRAND_CONFIGS.keys())
@@ -240,7 +240,9 @@ def reset_workspace():
     """화면 꼬임 없는 완벽한 작업 초기화 (설정은 유지)"""
     st.session_state.current_stage = 1
     st.session_state.color_name = ""
+    st.session_state.color_name_input_field = ""
     st.session_state.target_img_bytes = None
+    st.session_state.target_img_name = "카메라 직촬 Target"
     st.session_state.prev_sample_bytes = None
     st.session_state.temp_sample_bytes = None
     st.session_state.recipe_table_df = pd.DataFrame({"안료 코드": ["", "", "", ""], "1차 배합 중량 (g)": [0.0, 0.0, 0.0, 0.0]})
@@ -248,19 +250,19 @@ def reset_workspace():
     st.session_state.show_next_btn = False
     st.session_state.is_passed = False
     
-    # 임시 생성된 카메라, 텍스트 입력창 위젯 키 완벽 삭제
     keys_to_delete = [k for k in st.session_state.keys() if k.startswith(("cam_", "file_", "editor_", "r_text_", "weight_", "lab_", "color_name_input"))]
     for k in keys_to_delete:
         del st.session_state[k]
 
-# Custom CSS (모바일 토글 버튼 건드리지 않고 브랜딩만 깔끔하게 제거)
+# Custom CSS
 st.markdown("""<style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     html, body, [class*="css"] { font-family: 'Pretendard', -apple-system, sans-serif; }
     
     /* Streamlit 브랜딩만 제거 (사이드바 버튼은 절대 건드리지 않음) */
-    #MainMenu {visibility: hidden !important;}
+    #MainMenu {visibility: hidden !important; display: none !important;}
     footer {visibility: hidden !important; display: none !important;}
+    [data-testid="stToolbar"] {display: none !important;}
     .stAppDeployButton {display: none !important;}
     header[data-testid="stHeader"] {background: transparent !important;}
 
@@ -278,7 +280,7 @@ st.markdown("""<style>
 </style>""", unsafe_allow_html=True)
 
 # ----------------------------------------------------
-# 3. 로그인 모듈 (클라우드 설정 연동)
+# 3. 로그인 모듈 (★오류 먹힘 방지 및 완벽한 분리 적용)
 # ----------------------------------------------------
 if not st.session_state.logged_in:
     st.markdown("""<div class="noroo-header-box" style="text-align:center;">
@@ -306,28 +308,36 @@ if not st.session_state.logged_in:
                     else:
                         if "saved_email" in st.query_params: del st.query_params["saved_email"]
                             
+                    login_success = False
                     if supabase_client:
                         try:
+                            # 1단계: Supabase 인증 시도
                             res = supabase_client.auth.sign_in_with_password({"email": login_email.strip(), "password": login_pw.strip()})
-                            st.session_state.logged_in = True
                             st.session_state.user_email = res.user.email
                             user_meta = res.user.user_metadata
                             st.session_state.current_user = user_meta.get("display_name", res.user.email.split("@")[0])
                             
-                            # 로그인 시 DB에서 설정 불러오기
+                            # 2단계: 클라우드 DB에서 개인 설정 불러오기
                             if user_meta.get("pref_brand") in valid_brands: st.session_state.pref_brand = user_meta.get("pref_brand")
                             if user_meta.get("pref_phone_brand") in valid_phone_brands:
                                 st.session_state.pref_phone_brand = user_meta.get("pref_phone_brand")
                                 if user_meta.get("pref_phone_model") in CAMERA_PROFILES[st.session_state.pref_phone_brand]:
                                     st.session_state.pref_phone_model = user_meta.get("pref_phone_model")
 
-                            st.success(f"🎉 {st.session_state.current_user}님, 환영합니다!")
+                            login_success = True
+                        except Exception as e:
+                            # ★ Exception을 명시하여 Streamlit 제어 신호(Rerun)와 충돌하지 않도록 방어
+                            st.error("❌ 로그인 실패: 이메일 또는 비밀번호를 확인하세요.")
+                            
+                        # 3단계: 로그인 성공 시 화면 분기 (try-except 블록 밖에서 실행해야 안전함)
+                        if login_success:
+                            st.session_state.logged_in = True
                             st.rerun()
-                        except: st.error("❌ 로그인 실패: 이메일 또는 비밀번호를 확인하세요.")
                     else:
                         if login_email == "admin@test.com" and login_pw == "1234":
                             st.session_state.logged_in = True; st.session_state.current_user = "관리자"; st.session_state.user_email = login_email; st.rerun()
-                        else: st.error("❌ 아이디/비밀번호가 맞지 않습니다.")
+                        else: 
+                            st.error("❌ 아이디/비밀번호가 맞지 않습니다.")
         
         with auth_tab2:
             with st.form("register_form", clear_on_submit=False):
@@ -355,7 +365,7 @@ def db_fetch_user_history():
     try:
         res = supabase_client.table("work_history").select("*").eq("username", st.session_state.current_user).order("created_at", desc=True).execute()
         return res.data
-    except: return []
+    except Exception: return []
 
 def db_save_work(title_name, current_brand):
     if not title_name.strip(): return False
@@ -363,7 +373,7 @@ def db_save_work(title_name, current_brand):
     if supabase_client and len(user_history) >= MAX_SAVE_LIMIT:
         for old_item in user_history[MAX_SAVE_LIMIT - 1:]:
             try: supabase_client.table("work_history").delete().eq("id", old_item['id']).execute()
-            except: pass
+            except Exception: pass
             
     payload = {
         "username": st.session_state.current_user, "title": title_name.strip(), "brand": current_brand,
@@ -377,7 +387,7 @@ def db_save_work(title_name, current_brand):
             supabase_client.table("work_history").insert(payload).execute()
             st.toast(f"☁️ '{title_name}' 저장 완료!", icon="💾")
             return True
-        except: return False
+        except Exception: return False
     return True
 
 def db_get_successful_recipes_rag(brand_name, color_name):
@@ -388,12 +398,12 @@ def db_get_successful_recipes_rag(brand_name, color_name):
         txt = "\n\n[★ 과거 성공 레시피]\n"
         for i, r in enumerate(res.data, 1): txt += f" 사례{i} [{r['color_name']}]: {r['recipe_json']}\n"
         return txt
-    except: return ""
+    except Exception: return ""
 
 def db_delete_work(history_id):
     if supabase_client:
         try: supabase_client.table("work_history").delete().eq("id", history_id).execute()
-        except: pass
+        except Exception: pass
 
 # ----------------------------------------------------
 # 5. 좌측 사이드바 (원상복구 완벽 구현)
@@ -409,12 +419,12 @@ with st.sidebar:
     
     # 1) 페인트 설정
     st.header("🎨 도료 브랜드 설정")
-    new_brand = st.selectbox("브랜드 선택", valid_brands, index=valid_brands.index(st.session_state.pref_brand))
+    new_brand = st.selectbox("브랜드 변경", valid_brands, index=valid_brands.index(st.session_state.pref_brand))
     if new_brand != st.session_state.pref_brand:
         st.session_state.pref_brand = new_brand
         if supabase_client:
             try: supabase_client.auth.update_user({"data": {"pref_brand": new_brand}})
-            except: pass
+            except Exception: pass
         st.rerun()
     st.info(f"📌 {BRAND_CONFIGS[st.session_state.pref_brand]['special_rules']}")
 
@@ -434,7 +444,7 @@ with st.sidebar:
         st.session_state.pref_phone_model = new_p_model
         if supabase_client:
             try: supabase_client.auth.update_user({"data": {"pref_phone_brand": new_p_brand, "pref_phone_model": new_p_model}})
-            except: pass
+            except Exception: pass
         st.rerun()
 
     st.markdown("---")
@@ -443,6 +453,7 @@ with st.sidebar:
     st.header("📁 저장된 내역 불러오기")
     db_history = db_fetch_user_history()
     if db_history:
+        st.caption(f"현재 보관 수량: **{len(db_history)} / {MAX_SAVE_LIMIT} 개**")
         titles = [f"{h['title']} ({h['created_at'][:10]})" for h in db_history]
         selected_idx = st.selectbox("불러올 작업 선택", range(len(titles)), format_func=lambda x: titles[x])
         selected_row = db_history[selected_idx]
@@ -456,7 +467,7 @@ with st.sidebar:
                 st.session_state.pref_brand = selected_row["brand"]
                 st.session_state.ai_result_text = selected_row.get("ai_result", "")
                 try: st.session_state.recipe_table_df = pd.read_json(io.StringIO(selected_row["recipe_json"]))
-                except: pass
+                except Exception: pass
                 st.toast(f"📂 '{selected_row['title']}' 내역을 불러왔습니다.")
                 st.rerun()
         with col_s2:
