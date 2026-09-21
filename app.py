@@ -205,7 +205,7 @@ if HAS_SUPABASE_LIB and "SUPABASE_URL" in st.secrets and "SUPABASE_KEY" in st.se
     try: supabase_client = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
     except Exception: pass
 
-# --- 세션 상태 완벽 초기화 ---
+# --- 세션 상태 완벽 초기화 (기본값 설정) ---
 valid_brands = list(BRAND_CONFIGS.keys())
 valid_phone_brands = list(CAMERA_PROFILES.keys())
 
@@ -237,12 +237,10 @@ def go_next_stage():
         st.session_state.temp_sample_bytes = None
 
 def reset_workspace():
-    """화면 꼬임 없는 완벽한 작업 초기화 (설정은 유지)"""
+    """도화지(작업 내용)만 새것으로 교체하고 설정값은 건드리지 않는 초기화 함수"""
     st.session_state.current_stage = 1
     st.session_state.color_name = ""
-    st.session_state.color_name_input_field = ""
     st.session_state.target_img_bytes = None
-    st.session_state.target_img_name = "카메라 직촬 Target"
     st.session_state.prev_sample_bytes = None
     st.session_state.temp_sample_bytes = None
     st.session_state.recipe_table_df = pd.DataFrame({"안료 코드": ["", "", "", ""], "1차 배합 중량 (g)": [0.0, 0.0, 0.0, 0.0]})
@@ -254,17 +252,17 @@ def reset_workspace():
     for k in keys_to_delete:
         del st.session_state[k]
 
-# Custom CSS
+# Custom CSS: 모바일 사이드바 버튼을 해치던 요소만 핀포인트로 제거!
 st.markdown("""<style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     html, body, [class*="css"] { font-family: 'Pretendard', -apple-system, sans-serif; }
     
-    /* Streamlit 브랜딩만 제거 (사이드바 버튼은 절대 건드리지 않음) */
+    /* 🚨 사이드바 열기 버튼(stHeader, collapsedControl)은 절대 건드리지 않음! */
     #MainMenu {visibility: hidden !important; display: none !important;}
     footer {visibility: hidden !important; display: none !important;}
     [data-testid="stToolbar"] {display: none !important;}
     .stAppDeployButton {display: none !important;}
-    header[data-testid="stHeader"] {background: transparent !important;}
+    [class*="viewerBadge"] {display: none !important;}
 
     .noroo-header-box {
         background: linear-gradient(135deg, #091936 0%, #003375 50%, #005BB5 100%);
@@ -280,7 +278,7 @@ st.markdown("""<style>
 </style>""", unsafe_allow_html=True)
 
 # ----------------------------------------------------
-# 3. 로그인 모듈 (★오류 먹힘 방지 및 완벽한 분리 적용)
+# 3. 로그인 모듈 (더블클릭 버그 완전 해결 & 클라우드 설정 연동)
 # ----------------------------------------------------
 if not st.session_state.logged_in:
     st.markdown("""<div class="noroo-header-box" style="text-align:center;">
@@ -311,25 +309,24 @@ if not st.session_state.logged_in:
                     login_success = False
                     if supabase_client:
                         try:
-                            # 1단계: Supabase 인증 시도
                             res = supabase_client.auth.sign_in_with_password({"email": login_email.strip(), "password": login_pw.strip()})
                             st.session_state.user_email = res.user.email
                             user_meta = res.user.user_metadata
                             st.session_state.current_user = user_meta.get("display_name", res.user.email.split("@")[0])
                             
-                            # 2단계: 클라우드 DB에서 개인 설정 불러오기
-                            if user_meta.get("pref_brand") in valid_brands: st.session_state.pref_brand = user_meta.get("pref_brand")
+                            # ★ 내 프로필에 마지막으로 저장된 설정 불러오기
+                            if user_meta.get("pref_brand") in valid_brands: 
+                                st.session_state.pref_brand = user_meta.get("pref_brand")
                             if user_meta.get("pref_phone_brand") in valid_phone_brands:
                                 st.session_state.pref_phone_brand = user_meta.get("pref_phone_brand")
                                 if user_meta.get("pref_phone_model") in CAMERA_PROFILES[st.session_state.pref_phone_brand]:
                                     st.session_state.pref_phone_model = user_meta.get("pref_phone_model")
 
                             login_success = True
-                        except Exception as e:
-                            # ★ Exception을 명시하여 Streamlit 제어 신호(Rerun)와 충돌하지 않도록 방어
+                        except Exception:
                             st.error("❌ 로그인 실패: 이메일 또는 비밀번호를 확인하세요.")
                             
-                        # 3단계: 로그인 성공 시 화면 분기 (try-except 블록 밖에서 실행해야 안전함)
+                        # 새로고침 충돌 방지: 예외처리 블록을 완전히 빠져나온 후 리런
                         if login_success:
                             st.session_state.logged_in = True
                             st.rerun()
@@ -406,7 +403,7 @@ def db_delete_work(history_id):
         except Exception: pass
 
 # ----------------------------------------------------
-# 5. 좌측 사이드바 (원상복구 완벽 구현)
+# 5. 좌측 사이드바 (★설정 및 보관함 완벽 원상 복구★)
 # ----------------------------------------------------
 with st.sidebar:
     st.markdown(f"👤 **접속 계정**: `{st.session_state.current_user}`")
@@ -417,25 +414,28 @@ with st.sidebar:
 
     st.markdown("---")
     
-    # 1) 페인트 설정
+    # 1) 페인트 설정 (변경 시 클라우드 즉시 저장)
     st.header("🎨 도료 브랜드 설정")
-    new_brand = st.selectbox("브랜드 변경", valid_brands, index=valid_brands.index(st.session_state.pref_brand))
+    b_index = valid_brands.index(st.session_state.pref_brand) if st.session_state.pref_brand in valid_brands else 0
+    new_brand = st.selectbox("브랜드 변경", valid_brands, index=b_index)
+    
     if new_brand != st.session_state.pref_brand:
         st.session_state.pref_brand = new_brand
         if supabase_client:
             try: supabase_client.auth.update_user({"data": {"pref_brand": new_brand}})
             except Exception: pass
         st.rerun()
+        
     st.info(f"📌 {BRAND_CONFIGS[st.session_state.pref_brand]['special_rules']}")
 
     st.markdown("---")
 
-    # 2) 스마트폰 카메라 설정
+    # 2) 스마트폰 카메라 설정 (변경 시 클라우드 즉시 저장)
     st.header("📱 스마트폰 카메라 설정")
-    new_p_brand = st.selectbox("제조사 선택", valid_phone_brands, index=valid_phone_brands.index(st.session_state.pref_phone_brand))
+    pb_idx = valid_phone_brands.index(st.session_state.pref_phone_brand) if st.session_state.pref_phone_brand in valid_phone_brands else 0
+    new_p_brand = st.selectbox("제조사 선택", valid_phone_brands, index=pb_idx)
     
     p_models = list(CAMERA_PROFILES[new_p_brand].keys())
-    # 제조사가 바뀌면 모델 인덱스가 없을 수 있으므로 안전 처리
     m_index = p_models.index(st.session_state.pref_phone_model) if st.session_state.pref_phone_model in p_models else 0
     new_p_model = st.selectbox("기종 선택", p_models, index=m_index)
 
@@ -462,7 +462,7 @@ with st.sidebar:
         with col_s1:
             if st.button("📂 불러오기", use_container_width=True):
                 st.session_state.color_name = selected_row.get("color_name", "")
-                st.session_state.color_name_input_field = st.session_state.color_name  # 강제 업데이트용 키
+                st.session_state.color_name_input_field = st.session_state.color_name
                 st.session_state.current_stage = selected_row["stage"]
                 st.session_state.pref_brand = selected_row["brand"]
                 st.session_state.ai_result_text = selected_row.get("ai_result", "")
@@ -512,9 +512,10 @@ with tab_tuning:
     
     col_c1, col_c2 = st.columns([3.5, 1])
     with col_c1:
-        # 불러오기 했을 때 값이 제대로 채워지도록 설정
-        input_color_val = st.text_input("차종 및 목표 색상코드/색상명을 입력하세요", value=st.session_state.get("color_name_input_field", st.session_state.color_name), placeholder="예: 기아 ABT, 현대 SWP 등", key="color_name_input_field")
+        # 텍스트 입력창 값 동기화
+        input_color_val = st.text_input("차종 및 목표 색상코드/색상명을 입력하세요", value=st.session_state.get("color_name_input_field", st.session_state.color_name), placeholder="예: 기아 ABT, 현대 SWP 등", key="color_name_input")
         st.session_state.color_name = input_color_val
+        st.session_state.color_name_input_field = input_color_val
 
     with col_c2:
         st.write(""); st.write("")
