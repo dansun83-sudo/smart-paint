@@ -219,7 +219,7 @@ st.set_page_config(
 if "GEMINI_API_KEY" in st.secrets:
     api_key = st.secrets["GEMINI_API_KEY"]
 else:
-    st.error("⚠️ Streamlit Secrets에 GEMINI_API_KEY가 설정되지 않았습니다.")
+    st.error("⚠️ Stream মেয়াদ Secrets에 GEMINI_API_KEY가 설정되지 않았습니다.")
     st.stop()
 
 client = genai.Client(api_key=api_key)
@@ -267,7 +267,7 @@ if "show_next_btn" not in st.session_state:
 if "is_passed" not in st.session_state:
     st.session_state.is_passed = False
 
-# 기본 선택 세션 설정
+# 기본 선택 세션 설정 (초기값 - 로그인 시 덮어씌워짐)
 valid_brands = list(BRAND_CONFIGS.keys())
 if "selected_brand_key" not in st.session_state or st.session_state.selected_brand_key not in valid_brands:
     st.session_state.selected_brand_key = valid_brands[0]
@@ -417,7 +417,7 @@ st.markdown("""<style>
 </style>""", unsafe_allow_html=True)
 
 # ----------------------------------------------------
-# 3. Supabase Auth 회원가입 및 로그인 모듈 (아이디 기억하기 적용)
+# 3. Supabase Auth 회원가입 및 로그인 모듈 (자동 설정 불러오기 적용)
 # ----------------------------------------------------
 if not st.session_state.logged_in:
     st.markdown("""<div class="noroo-header-box" style="text-align:center;">
@@ -434,7 +434,6 @@ if not st.session_state.logged_in:
         with auth_tab1:
             st.subheader("클라우드 로그인")
             
-            # 저장된 이메일 쿼리 파라미터 확인
             saved_email_val = st.query_params.get("saved_email", "")
             remember_email_init = True if saved_email_val else False
             
@@ -447,7 +446,6 @@ if not st.session_state.logged_in:
                 submitted = st.form_submit_button("🚀 로그인하기", type="primary", use_container_width=True)
                 
                 if submitted:
-                    # 아이디 기억하기 체크박스 상태 업데이트
                     if remember_email_chk:
                         st.query_params["saved_email"] = login_email.strip()
                     else:
@@ -462,7 +460,21 @@ if not st.session_state.logged_in:
                             })
                             st.session_state.logged_in = True
                             st.session_state.user_email = res.user.email
-                            st.session_state.current_user = res.user.user_metadata.get("display_name", res.user.email.split("@")[0])
+                            
+                            user_meta = res.user.user_metadata
+                            st.session_state.current_user = user_meta.get("display_name", res.user.email.split("@")[0])
+                            
+                            # ★ 클라우드에 저장된 설정값(브랜드, 핸드폰) 덮어씌우기
+                            saved_brand = user_meta.get("pref_brand")
+                            if saved_brand in BRAND_CONFIGS:
+                                st.session_state.selected_brand_key = saved_brand
+                                
+                            saved_p_brand = user_meta.get("pref_phone_brand")
+                            saved_p_model = user_meta.get("pref_phone_model")
+                            if saved_p_brand in CAMERA_PROFILES and saved_p_model in CAMERA_PROFILES[saved_p_brand]:
+                                st.session_state.phone_brand_key = saved_p_brand
+                                st.session_state.phone_model_key = saved_p_model
+
                             st.success(f"🎉 {st.session_state.current_user}님, 환영합니다!")
                             st.rerun()
                         except Exception as e:
@@ -605,7 +617,7 @@ def db_delete_work(history_id, history_title):
             st.sidebar.error(f"삭제 오류: {e}")
 
 # ----------------------------------------------------
-# 5. 사이드바 구성 (저장 내역 불러오기 및 계정 관리)
+# 5. 사이드바 구성 (저장 내역 불러오기 및 계정 관리 - 중복 제거)
 # ----------------------------------------------------
 with st.sidebar:
     st.markdown(f"👤 **접속 계정**: `{st.session_state.current_user}`")
@@ -676,14 +688,14 @@ st.markdown(f"""<div class="noroo-header-box">
 </div>""", unsafe_allow_html=True)
 
 # ----------------------------------------------------
-# ★ 모바일 전용 상단 설정 확인/변경 대시보드 ★
+# ★ 모바일 전용 상단 설정 확인/변경 대시보드 (클라우드 동기화 추가) ★
 # ----------------------------------------------------
 st.write("")
-with st.expander(f"⚙️ 현재 적용 설정: [{selected_brand}] | [{selected_camera}] (터치하여 변경)", expanded=False):
+with st.expander(f"⚙️ 내 클라우드 설정: [{selected_brand}] | [{selected_camera}] (터치하여 변경)", expanded=False):
     col_mb1, col_mb2 = st.columns(2)
     
     with col_mb1:
-        st.markdown("##### 🎨 도료 브랜드 선택")
+        st.markdown("##### 🎨 도료 브랜드 설정")
         selected_brand_input = st.selectbox(
             "브랜드 변경",
             valid_brands,
@@ -692,13 +704,17 @@ with st.expander(f"⚙️ 현재 적용 설정: [{selected_brand}] | [{selected_
         )
         if selected_brand_input != st.session_state.selected_brand_key:
             st.session_state.selected_brand_key = selected_brand_input
+            # ★ 변경 시 클라우드 프로필에 즉시 자동 저장
+            if supabase_client:
+                try: supabase_client.auth.update_user({"data": {"pref_brand": selected_brand_input}})
+                except: pass
             st.rerun()
             
         b_info = BRAND_CONFIGS[st.session_state.selected_brand_key]
         st.info(f"📌 **브랜드 수칙**: {b_info['special_rules']}\n\n🧪 **희석 수칙**: {b_info['thinner_info']}")
 
     with col_mb2:
-        st.markdown("##### 📱 스마트폰 카메라 보정")
+        st.markdown("##### 📱 스마트폰 카메라 보정 설정")
         p_brand = st.selectbox("제조사 선택", list(CAMERA_PROFILES.keys()), index=list(CAMERA_PROFILES.keys()).index(st.session_state.phone_brand_key), key="main_p_brand_select")
         p_models = list(CAMERA_PROFILES[p_brand].keys())
         
@@ -708,6 +724,10 @@ with st.expander(f"⚙️ 현재 적용 설정: [{selected_brand}] | [{selected_
         if p_brand != st.session_state.phone_brand_key or p_model != st.session_state.phone_model_key:
             st.session_state.phone_brand_key = p_brand
             st.session_state.phone_model_key = p_model
+            # ★ 변경 시 클라우드 프로필에 즉시 자동 저장
+            if supabase_client:
+                try: supabase_client.auth.update_user({"data": {"pref_phone_brand": p_brand, "pref_phone_model": p_model}})
+                except: pass
             st.rerun()
             
         st.caption(f"🎯 **카메라 보정 알고리즘**: {CAMERA_PROFILES[p_brand][p_model]}")
