@@ -331,6 +331,31 @@ st.markdown("""<style>
         z-index: 1000 !important;
     }
 
+    /* 모바일 사이드바 버튼 고정 */
+    [data-testid="stSidebarCollapsedControl"] {
+        display: block !important;
+        visibility: visible !important;
+        z-index: 999999 !important;
+        position: fixed !important;
+        top: 10px !important;
+        left: 10px !important;
+    }
+    [data-testid="stSidebarCollapsedControl"] button {
+        background-color: #003375 !important;
+        color: #FFFFFF !important;
+        border: 1px solid #82B1FF !important;
+        border-radius: 8px !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+        width: 42px !important;
+        height: 42px !important;
+    }
+    [data-testid="stSidebarCollapsedControl"] button svg {
+        fill: #FFFFFF !important;
+        color: #FFFFFF !important;
+        width: 24px !important;
+        height: 24px !important;
+    }
+
     .noroo-header-box {
         background: linear-gradient(135deg, #091936 0%, #003375 50%, #005BB5 100%);
         padding: 22px 28px;
@@ -392,7 +417,7 @@ st.markdown("""<style>
 </style>""", unsafe_allow_html=True)
 
 # ----------------------------------------------------
-# 3. Supabase Auth 회원가입 및 로그인 모듈
+# 3. Supabase Auth 회원가입 및 로그인 모듈 (아이디 기억하기 적용)
 # ----------------------------------------------------
 if not st.session_state.logged_in:
     st.markdown("""<div class="noroo-header-box" style="text-align:center;">
@@ -408,13 +433,27 @@ if not st.session_state.logged_in:
         
         with auth_tab1:
             st.subheader("클라우드 로그인")
+            
+            # 저장된 이메일 쿼리 파라미터 확인
+            saved_email_val = st.query_params.get("saved_email", "")
+            remember_email_init = True if saved_email_val else False
+            
             with st.form("login_form", clear_on_submit=False):
-                login_email = st.text_input("이메일 (Email)", key="login_email_input")
+                login_email = st.text_input("이메일 (Email)", value=saved_email_val, key="login_email_input")
                 login_pw = st.text_input("비밀번호 (Password)", type="password", key="login_pw_input")
+                
+                remember_email_chk = st.checkbox("☑️ 이메일(아이디) 기억하기", value=remember_email_init)
                 
                 submitted = st.form_submit_button("🚀 로그인하기", type="primary", use_container_width=True)
                 
                 if submitted:
+                    # 아이디 기억하기 체크박스 상태 업데이트
+                    if remember_email_chk:
+                        st.query_params["saved_email"] = login_email.strip()
+                    else:
+                        if "saved_email" in st.query_params:
+                            del st.query_params["saved_email"]
+                            
                     if supabase_client:
                         try:
                             res = supabase_client.auth.sign_in_with_password({
