@@ -20,20 +20,20 @@ except ImportError:
 RESAMPLE_FILTER = getattr(Image, 'LANCZOS', getattr(Image, 'Resampling', Image).LANCZOS if hasattr(Image, 'Resampling') else Image.BICUBIC)
 
 # ----------------------------------------------------
-# 0-1. 스마트폰 카메라 기종별 보정 프로필
+# 0-1. 스마트폰 카메라 기종별 보정 프로필 데이터베이스
 # ----------------------------------------------------
 CAMERA_PROFILES = {
     "애플 (Apple)": {
-        "iPhone 17 / Pro / Max (최신)": "애플 Smart HDR 6 적용 (자연스러운 색감, 웜톤/노란기 미세 보정)",
-        "iPhone 16 / Pro / Max": "애플 Photonic Engine 적용 (웜톤 화이트밸런스 차감 보정)",
+        "iPhone 17 / Pro / Max (최신)": "애플 Smart HDR 6 적용 (자연스러운 색감, 특유의 웜톤/노란기 미세 영점 보정, 펄 입자 정밀 분석)",
+        "iPhone 16 / Pro / Max": "애플 Photonic Engine 적용 (특유의 웜톤 화이트밸런스 차감 보정)",
         "iPhone 15 시리즈": "애플 Smart HDR 5 적용 (온색계열 렌즈 화세 보정)",
         "iPhone 14 / Pro (기본)": "애플 Deep Fusion 적용 (기본 웜톤 및 입자 텍스처 보정)",
         "기타 아이폰": "아이폰 표준 렌즈 색감 보정"
     },
     "삼성 (Samsung)": {
-        "Galaxy S26 / Ultra (최신)": "삼성 ProVisual Engine 적용 (고채도 원색 강조 차감, 샤프닝 억제)",
-        "Galaxy S25 / Ultra": "삼성 ProVisual Engine 적용 (고채도 및 명암 대비 보정)",
-        "Galaxy S24 / Ultra": "삼성 Nightography & ISP (선명한 색감 보정)",
+        "Galaxy S26 / Ultra (최신)": "삼성 ProVisual Engine 적용 (인공 고채도/원색 강조 차감 보정, 샤프닝 억제 정밀 분석)",
+        "Galaxy S25 / Ultra": "삼성 ProVisual Engine 적용 (고채도 및 명암 대비 영점 보정)",
+        "Galaxy S24 / Ultra": "삼성 Nightography & ISP (선명한 색감 및 원색 강조 보정)",
         "Galaxy S23 / S22 시리즈": "삼성 씬 오프티마이저 (채도 보정 및 에지 강조 보정)",
         "Galaxy Z Fold / Flip 시리즈": "삼성 폴더블 전용 센서 특성 보정",
         "기타 갤럭시": "갤럭시 표준 렌즈 색감 보정"
@@ -203,7 +203,7 @@ if HAS_SUPABASE_LIB and "SUPABASE_URL" in st.secrets and "SUPABASE_KEY" in st.se
     try: supabase_client = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
     except Exception: pass
 
-# --- 세션 상태 초기화 (기본값) ---
+# --- 세션 상태 완벽 초기화 ---
 valid_brands = list(BRAND_CONFIGS.keys())
 valid_phone_brands = list(CAMERA_PROFILES.keys())
 
@@ -217,6 +217,7 @@ if "user_email" not in st.session_state: st.session_state.user_email = ""
 
 if "current_stage" not in st.session_state: st.session_state.current_stage = 1
 if "color_name" not in st.session_state: st.session_state.color_name = ""
+if "color_name_input" not in st.session_state: st.session_state.color_name_input = "" # 입력창 키 전용 동기화 변수
 if "target_img_bytes" not in st.session_state: st.session_state.target_img_bytes = None
 if "prev_sample_bytes" not in st.session_state: st.session_state.prev_sample_bytes = None
 if "temp_sample_bytes" not in st.session_state: st.session_state.temp_sample_bytes = None
@@ -235,12 +236,11 @@ def go_next_stage():
         st.session_state.temp_sample_bytes = None
 
 def reset_workspace():
-    """작업내역 초기화. 클라우드 설정값은 절대 건드리지 않음"""
+    """작업내역 초기화 (입력창도 함께 비움)"""
     st.session_state.current_stage = 1
     st.session_state.color_name = ""
-    st.session_state.color_name_input_field = ""
+    st.session_state.color_name_input = "" # 입력창 값도 원천 초기화
     st.session_state.target_img_bytes = None
-    st.session_state.target_img_name = "카메라 직촬 Target"
     st.session_state.prev_sample_bytes = None
     st.session_state.temp_sample_bytes = None
     st.session_state.recipe_table_df = pd.DataFrame({"안료 코드": ["", "", "", ""], "1차 배합 중량 (g)": [0.0, 0.0, 0.0, 0.0]})
@@ -248,23 +248,21 @@ def reset_workspace():
     st.session_state.show_next_btn = False
     st.session_state.is_passed = False
     
-    # 찌꺼기 데이터 삭제
-    keys_to_delete = [k for k in st.session_state.keys() if k.startswith(("cam_", "file_", "editor_", "r_text_", "weight_", "lab_", "color_name_input"))]
+    keys_to_delete = [k for k in st.session_state.keys() if k.startswith(("cam_", "file_", "editor_", "r_text_", "weight_", "lab_"))]
     for k in keys_to_delete:
         del st.session_state[k]
 
-# 🚨 CSS 완전 순정화: 상단 메뉴 버튼(화살표)을 숨기는 코드를 100% 삭제했습니다!
-# 불필요한 배포 버튼(Deploy)과 워터마크만 조용히 숨깁니다.
+# Custom CSS
 st.markdown("""<style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     html, body, [class*="css"] { font-family: 'Pretendard', -apple-system, sans-serif; }
     
-    /* 우측 상단 Deploy 버튼 및 하단 워터마크 숨기기 (왼쪽 화살표 버튼은 건드리지 않음) */
+    #MainMenu {visibility: hidden !important; display: none !important;}
+    footer {visibility: hidden !important; display: none !important;}
+    [data-testid="stToolbar"] {display: none !important;}
     .stAppDeployButton {display: none !important;}
     [class*="viewerBadge"] {display: none !important;}
-    footer {visibility: hidden !important;}
 
-    /* 본문 디자인 스타일 */
     .noroo-header-box {
         background: linear-gradient(135deg, #091936 0%, #003375 50%, #005BB5 100%);
         padding: 22px 28px; border-radius: 16px; color: #FFFFFF;
@@ -279,7 +277,7 @@ st.markdown("""<style>
 </style>""", unsafe_allow_html=True)
 
 # ----------------------------------------------------
-# 3. 로그인 모듈 (설정값 확실히 불러오기 및 에러 무시)
+# 3. 로그인 모듈
 # ----------------------------------------------------
 if not st.session_state.logged_in:
     st.markdown("""<div class="noroo-header-box" style="text-align:center;">
@@ -310,13 +308,12 @@ if not st.session_state.logged_in:
                     login_success = False
                     if supabase_client:
                         try:
-                            # 로그인 검증
                             res = supabase_client.auth.sign_in_with_password({"email": login_email.strip(), "password": login_pw.strip()})
                             st.session_state.user_email = res.user.email
                             user_meta = res.user.user_metadata
                             st.session_state.current_user = user_meta.get("display_name", res.user.email.split("@")[0])
                             
-                            # ★ 내 프로필에 마지막으로 저장된 설정 불러오기
+                            # 내 프로필에서 저장된 설정 불러오기
                             if user_meta.get("pref_brand") in valid_brands: 
                                 st.session_state.pref_brand = user_meta.get("pref_brand")
                             if user_meta.get("pref_phone_brand") in valid_phone_brands:
@@ -328,7 +325,6 @@ if not st.session_state.logged_in:
                         except Exception:
                             st.error("❌ 로그인 실패: 이메일 또는 비밀번호를 확인하세요.")
                             
-                        # 새로고침 충돌(에러 먹힘 현상) 방지를 위해 try 밖에서 성공 시 rerun 실행
                         if login_success:
                             st.session_state.logged_in = True
                             st.rerun()
@@ -405,7 +401,7 @@ def db_delete_work(history_id):
         except Exception: pass
 
 # ----------------------------------------------------
-# 5. 좌측 사이드바 (★모바일 메뉴 화살표 무조건 보장, 설정 즉시 저장★)
+# 5. 좌측 사이드바 (설정 및 데이터 불러오기)
 # ----------------------------------------------------
 with st.sidebar:
     st.markdown(f"👤 **접속 계정**: `{st.session_state.current_user}`")
@@ -421,7 +417,6 @@ with st.sidebar:
     b_index = valid_brands.index(st.session_state.pref_brand) if st.session_state.pref_brand in valid_brands else 0
     new_brand = st.selectbox("브랜드 변경", valid_brands, index=b_index)
     
-    # 설정이 바뀌면 세션+클라우드 즉시 저장 후 1번만 새로고침
     if new_brand != st.session_state.pref_brand:
         st.session_state.pref_brand = new_brand
         if supabase_client:
@@ -442,7 +437,6 @@ with st.sidebar:
     m_index = p_models.index(st.session_state.pref_phone_model) if st.session_state.pref_phone_model in p_models else 0
     new_p_model = st.selectbox("기종 선택", p_models, index=m_index)
 
-    # 핸드폰 기종 변경 시 클라우드 즉시 저장
     if new_p_brand != st.session_state.pref_phone_brand or new_p_model != st.session_state.pref_phone_model:
         st.session_state.pref_phone_brand = new_p_brand
         st.session_state.pref_phone_model = new_p_model
@@ -453,7 +447,7 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # 3) 저장된 내역 불러오기
+    # 3) 저장된 내역 불러오기 (★ 핵심: 입력창 Key 동기화로 자동 채움 버그 해결 ★)
     st.header("📁 저장된 내역 불러오기")
     db_history = db_fetch_user_history()
     if db_history:
@@ -465,14 +459,20 @@ with st.sidebar:
         col_s1, col_s2 = st.columns(2)
         with col_s1:
             if st.button("📂 불러오기", use_container_width=True):
-                st.session_state.color_name = selected_row.get("color_name", "")
-                st.session_state.color_name_input_field = st.session_state.color_name
+                loaded_color = selected_row.get("color_name", "")
+                st.session_state.color_name = loaded_color
+                st.session_state.color_name_input = loaded_color  # ★ 입력창 고유 Key 메모리에 즉시 수치 주입!
+                
                 st.session_state.current_stage = selected_row["stage"]
                 st.session_state.pref_brand = selected_row["brand"]
                 st.session_state.ai_result_text = selected_row.get("ai_result", "")
                 try: st.session_state.recipe_table_df = pd.read_json(io.StringIO(selected_row["recipe_json"]))
                 except Exception: pass
-                st.toast(f"📂 '{selected_row['title']}' 내역을 불러왔습니다.")
+                
+                # 데이터 에디터 잔상 제거
+                if "editor_1" in st.session_state: del st.session_state["editor_1"]
+                
+                st.toast(f"📂 '{selected_row['title']}' 내역을 성공적으로 불러왔습니다!")
                 st.rerun()
         with col_s2:
             if st.button("🗑️ 삭제하기", use_container_width=True):
@@ -516,10 +516,13 @@ with tab_tuning:
     
     col_c1, col_c2 = st.columns([3.5, 1])
     with col_c1:
-        # 불러온 데이터가 화면 텍스트창에 즉시 반영되도록 처리
-        input_color_val = st.text_input("차종 및 목표 색상코드/색상명을 입력하세요", value=st.session_state.get("color_name_input_field", st.session_state.color_name), placeholder="예: 기아 ABT, 현대 SWP 등", key="color_name_input")
+        # ★ key="color_name_input"으로 묶어 불러오기 시 100% 자동 채워짐!
+        input_color_val = st.text_input(
+            "차종 및 목표 색상코드/색상명을 입력하세요",
+            placeholder="예: 기아 ABT, 현대 SWP 등",
+            key="color_name_input"
+        )
         st.session_state.color_name = input_color_val
-        st.session_state.color_name_input_field = input_color_val
 
     with col_c2:
         st.write(""); st.write("")
