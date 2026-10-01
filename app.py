@@ -368,52 +368,20 @@ def reset_workspace():
     for k in keys_to_delete:
         del st.session_state[k]
 
-# ★★★ 모바일 아이폰 노치 아래 안전영역(top: 65px) 사이드바 열기/닫기 버튼 고정 CSS ★★★
+# ★ Streamlit 순정 UI 유지 및 최소한의 깔끔한 카드 스타일링 ★
 st.markdown("""<style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     html, body, [class*="css"] { font-family: 'Pretendard', -apple-system, sans-serif; }
     
     #MainMenu {visibility: hidden !important; display: none !important;}
     footer {visibility: hidden !important; display: none !important;}
-    [data-testid="stToolbar"] {display: none !important;}
     .stAppDeployButton {display: none !important;}
-    [class*="viewerBadge"] {display: none !important;}
     iframe {display: none !important;}
-
-    /* ★ 헤더 및 사이드바 토글 버튼(>) 위치를 상단 노치 아래(top: 65px)로 선명하게 배치 ★ */
-    [data-testid="stSidebarCollapsedControl"],
-    [data-testid="stSidebarExpandControl"],
-    button[aria-label*="sidebar"],
-    button[aria-label*="Sidebar"] {
-        display: flex !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        z-index: 9999999 !important;
-        position: fixed !important;
-        top: 65px !important;
-        left: 15px !important;
-        background-color: #003375 !important;
-        color: #FFFFFF !important;
-        border: 2px solid #82B1FF !important;
-        border-radius: 10px !important;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important;
-        width: 48px !important;
-        height: 48px !important;
-    }
-    
-    [data-testid="stSidebarCollapsedControl"] button svg,
-    [data-testid="stSidebarExpandControl"] button svg {
-        fill: #FFFFFF !important;
-        color: #FFFFFF !important;
-        width: 28px !important;
-        height: 28px !important;
-    }
 
     .noroo-header-box {
         background: linear-gradient(135deg, #091936 0%, #003375 50%, #005BB5 100%);
         padding: 22px 28px; border-radius: 16px; color: #FFFFFF;
         box-shadow: 0 8px 24px rgba(0, 51, 117, 0.18);
-        margin-top: 50px; /* 상단 메뉴 버튼과 간격 확보 */
     }
     .noroo-brand-name { font-size: 13px; font-weight: 700; color: #82B1FF; letter-spacing: 2px; }
     .noroo-main-title { font-size: 23px; font-weight: 800; color: #FFFFFF; margin: 4px 0 0 0; }
@@ -526,7 +494,7 @@ def db_save_work(title_name, current_brand):
     if supabase_client:
         try:
             supabase_client.table("work_history").insert(payload).execute()
-            st.toast(f"☁️️ '{title_name}' 저장 완료!", icon="💾")
+            st.toast(f"☁️ '{title_name}' 저장 완료!", icon="💾")
             return True
         except Exception: return False
     return True
@@ -547,7 +515,7 @@ def db_delete_work(history_id):
         except Exception: pass
 
 # ----------------------------------------------------
-# 5. 좌측 사이드바 (설정 및 불러오기 통형)
+# 5. 좌측 사이드바
 # ----------------------------------------------------
 with st.sidebar:
     st.markdown(f"👤 **접속 계정**: `{st.session_state.current_user}`")
@@ -633,8 +601,6 @@ st.markdown(f"""<div class="noroo-header-box">
     <h1 class="noroo-main-title">[{current_brand}] AI 스마트 조색 & 결함 진단</h1>
 </div>""", unsafe_allow_html=True)
 
-st.info("💡 **좌측 상단 파란색 버튼(`>`)**을 누르시면 도료 브랜드 변경, 카메라 기종 선택 및 작업 보관함을 열 수 있습니다.")
-
 st.markdown("---")
 
 tab_tuning, tab_defect = st.tabs([f"🎨 {current_brand} AI 미세 조색", "🔍 도장 결함 진단"])
@@ -662,7 +628,7 @@ with tab_tuning:
         color_code_str = st.session_state.color_name.strip()
         auto_default_title = f"{datetime.now().strftime('%Y-%m-%d')}_{color_code_str}" if color_code_str else f"{datetime.now().strftime('%Y-%m-%d')}_색상미지정"
         if st.button("💾 클라우드 저장", type="primary", use_container_width=True):
-            if not color_code_str: st.warning("⚠️ 차종 및 색상명을 입력한 후 저장해 주세요.")
+            if not color_code_str: st.warning("⚠️️ 차종 및 색상명을 입력한 후 저장해 주세요.")
             else: db_save_work(auto_default_title, current_brand); st.rerun()
 
     st.markdown("---")
@@ -704,7 +670,7 @@ with tab_tuning:
     st.markdown("---")
     
     # ----------------------------------------------------
-    # 3. 배합 레시피 작성 (★ 표 내부 셀 직접 입력/연관검색 드롭다운 적용 ★)
+    # 3. 배합 레시피 작성 (★ 셀 클릭 검색 지원 ★)
     # ----------------------------------------------------
     st.subheader(f"3. {prev_stage_code if not is_stage_1 else '1차 기본'} 배합 레시피 ({current_brand})")
     
@@ -725,11 +691,10 @@ with tab_tuning:
                         st.rerun()
                     else: st.warning("인식 실패. 아래 표에서 직접 선택해 주세요.")
 
-    st.write(f"📋 **{current_brand} 확정 배합표 (표 내부의 안료 코드 셀을 클릭하면 연관 안료가 자동으로 필터링됩니다):**")
+    st.write(f"📋 **{current_brand} 확정 배합표 (표 안료 코드 셀을 클릭하면 연관 안료가 자동으로 필터링됩니다):**")
     
     current_brand_pigments = BRAND_CONFIGS[current_brand].get("pigments", [])
     
-    # ★ 표 내부 셀을 직접 선택 및 키보드 검색 가능한 SelectboxColumn으로 적용 ★
     st.session_state.recipe_table_df = st.data_editor(
         st.session_state.recipe_table_df,
         column_config={
