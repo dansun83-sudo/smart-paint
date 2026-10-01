@@ -54,9 +54,9 @@ BRAND_CONFIGS = {
         "special_rules": "Q-7000 사용 시 전체 배합 내 10% 이상 초과 금지 (초과 시 Q-7800/Q-7900 교체)",
         "code_example": "Q-9760: 88.0g, Q-9800: 60.3g",
         "pigments": [
-            "Q-7000 (플롭조절)", "Q-7100", "Q-7200", "Q-7300", "Q-7350", "Q-7400", "Q-7450", 
-            "Q-7500", "Q-7600", "Q-7700", "Q-7800 (플롭대체)", "Q-7900 (플롭대체)", 
-            "Q-9100", "Q-9200", "Q-9300", "Q-9400", "Q-9500", "Q-9600", "Q-9700", "Q-9760", "Q-9800", "Q-9900"
+            "Q-7000", "Q-7100", "Q-7200", "Q-7300", "Q-7350", "Q-7400", "Q-7450", 
+            "Q-7500", "Q-7600", "Q-7700", "Q-7800", "Q-7900", "Q-9100", "Q-9200", 
+            "Q-9300", "Q-9400", "Q-9500", "Q-9600", "Q-9700", "Q-9760", "Q-9800", "Q-9900"
         ]
     },
     "시켄스 옵티마 (노루/Sikkens Optima)": {
@@ -66,7 +66,7 @@ BRAND_CONFIGS = {
         "special_rules": "시켄스 옵티마 전용 하이솔리드 특성 고려, 표준희석제 10~15% 혼합 후 점도 측정 후 교반",
         "code_example": "WB 334AB: 80.0g, WB 00: 20.0g",
         "pigments": [
-            "WB 00 (바인더)", "WB 110", "WB 120", "WB 220", "WB 300", "WB 334", "WB 334AB", 
+            "WB 00", "WB 110", "WB 120", "WB 220", "WB 300", "WB 334", "WB 334AB", 
             "WB 400", "WB 500", "WB 600", "WB 700", "WB 800", "WB 900"
         ]
     },
@@ -77,7 +77,7 @@ BRAND_CONFIGS = {
         "special_rules": "수성 베이스코트 전용 건조 시간 및 에어 블로우 규정 준수",
         "code_example": "WB334: 50.0g, WB00: 10.0g",
         "pigments": [
-            "WB00 (바인더)", "WB110", "WB120", "WB220", "WB300", "WB334", 
+            "WB00", "WB110", "WB120", "WB220", "WB300", "WB334", 
             "WB400", "WB500", "WB600", "WB700", "WB800", "WB900"
         ]
     },
@@ -137,7 +137,7 @@ BRAND_CONFIGS = {
 }
 
 # ----------------------------------------------------
-# 1. 이미지 처리 & 배합표 이미지 카드 생성 함수
+# 1. 이미지 처리 & 배합표 카드 생성 함수
 # ----------------------------------------------------
 def load_and_resize(image_file_or_bytes, max_size=(2500, 2500)):
     if isinstance(image_file_or_bytes, bytes):
@@ -181,7 +181,6 @@ def create_3way_split_view(bytes_prev, bytes_target, bytes_curr, crop_ratio=0.4)
     return merged_img
 
 def create_recipe_image_card(brand_name, color_name, stage_code, recipe_df, total_weight, thinner_info, special_rules):
-    """수정된 배합표를 깔끔한 이미지 카드(PNG)로 생성해주는 함수"""
     if recipe_df is None or recipe_df.empty:
         rows = []
     else:
@@ -280,7 +279,12 @@ def extract_df_from_recipe_image(client, image_bytes, brand_name):
 # ----------------------------------------------------
 # 2. 페이지 설정 및 세션 초기화
 # ----------------------------------------------------
-st.set_page_config(page_title="Multi-Brand AI Smart Color System", page_icon="🎨", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(
+    page_title="Multi-Brand AI Smart Color System",
+    page_icon="🎨",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 if "GEMINI_API_KEY" in st.secrets: api_key = st.secrets["GEMINI_API_KEY"]
 else: st.error("⚠️ Secrets에 GEMINI_API_KEY가 없습니다."); st.stop()
@@ -309,7 +313,8 @@ if "color_name_input" not in st.session_state: st.session_state.color_name_input
 if "target_img_bytes" not in st.session_state: st.session_state.target_img_bytes = None
 if "prev_sample_bytes" not in st.session_state: st.session_state.prev_sample_bytes = None
 if "temp_sample_bytes" not in st.session_state: st.session_state.temp_sample_bytes = None
-if "recipe_table_df" not in st.session_state: st.session_state.recipe_table_df = pd.DataFrame({"안료 코드": ["Q-7800", "", "", ""], "1차 배합 중량 (g)": [10.0, 0.0, 0.0, 0.0]})
+if "recipe_table_df" not in st.session_state: 
+    st.session_state.recipe_table_df = pd.DataFrame({"안료 코드": ["Q-7800", "Q-9760", "", ""], "1차 배합 중량 (g)": [10.0, 80.0, 0.0, 0.0]})
 if "ai_result_text" not in st.session_state: st.session_state.ai_result_text = ""
 if "show_next_btn" not in st.session_state: st.session_state.show_next_btn = False
 if "is_passed" not in st.session_state: st.session_state.is_passed = False
@@ -363,7 +368,7 @@ def reset_workspace():
     for k in keys_to_delete:
         del st.session_state[k]
 
-# ★★★ 모바일/웹 사이드바 열기/닫기(>) 버튼 상시 고정 CSS ★★★
+# ★★★ 모바일/웹 사이드바 토글 버튼(>) 상시 고정을 위한 CSS ★★★
 st.markdown("""<style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     html, body, [class*="css"] { font-family: 'Pretendard', -apple-system, sans-serif; }
@@ -375,19 +380,23 @@ st.markdown("""<style>
     [class*="viewerBadge"] {display: none !important;}
     iframe {display: none !important;}
 
-    /* ★ 사이드바 열기/닫기 토글 버튼(>) 강제 표출 및 선명 고정 ★ */
+    /* ★ 헤더 위치 고정 및 사이드바 버튼(>) 무조건 최상단 노출 ★ */
+    header[data-testid="stHeader"] {
+        background: transparent !important;
+        z-index: 999999 !important;
+    }
+    
     [data-testid="stSidebarCollapsedControl"],
-    [data-testid="stSidebarExpandControl"] {
+    [data-testid="stSidebarExpandControl"],
+    [data-testid="stHeader"] button[aria-label*="sidebar"],
+    [data-testid="stHeader"] button[aria-label*="Sidebar"] {
         display: flex !important;
         visibility: visible !important;
         opacity: 1 !important;
         z-index: 9999999 !important;
         position: fixed !important;
-        top: 12px !important;
-        left: 12px !important;
-    }
-    [data-testid="stSidebarCollapsedControl"] button,
-    [data-testid="stSidebarExpandControl"] button {
+        top: 10px !important;
+        left: 10px !important;
         background-color: #003375 !important;
         color: #FFFFFF !important;
         border: 2px solid #82B1FF !important;
@@ -396,18 +405,12 @@ st.markdown("""<style>
         width: 44px !important;
         height: 44px !important;
     }
-    [data-testid="stSidebarCollapsedControl"] button svg,
-    [data-testid="stSidebarExpandControl"] button svg {
-        fill: #FFFFFF !important;
-        color: #FFFFFF !important;
-        width: 24px !important;
-        height: 24px !important;
-    }
 
     .noroo-header-box {
         background: linear-gradient(135deg, #091936 0%, #003375 50%, #005BB5 100%);
         padding: 22px 28px; border-radius: 16px; color: #FFFFFF;
         box-shadow: 0 8px 24px rgba(0, 51, 117, 0.18);
+        margin-top: 10px;
     }
     .noroo-brand-name { font-size: 13px; font-weight: 700; color: #82B1FF; letter-spacing: 2px; }
     .noroo-main-title { font-size: 23px; font-weight: 800; color: #FFFFFF; margin: 4px 0 0 0; }
@@ -541,7 +544,7 @@ def db_delete_work(history_id):
         except Exception: pass
 
 # ----------------------------------------------------
-# 5. 좌측 사이드바 (기본 설정 및 내역 불러오기 통형 구현)
+# 5. 좌측 사이드바
 # ----------------------------------------------------
 with st.sidebar:
     st.markdown(f"👤 **접속 계정**: `{st.session_state.current_user}`")
@@ -552,23 +555,21 @@ with st.sidebar:
 
     st.markdown("---")
     
-    # 1) 도료 브랜드 기본 설정
+    # 1) 도료 브랜드 설정
     st.header("🎨 도료 브랜드 설정")
-    st.selectbox("브랜드 선택", valid_brands, key="sb_brand", on_change=on_brand_change)
+    st.selectbox("브랜드 변경", valid_brands, key="sb_brand", on_change=on_brand_change)
     cur_b = st.session_state["sb_brand"]
     st.info(f"📌 {BRAND_CONFIGS[cur_b]['special_rules']}")
 
     st.markdown("---")
 
-    # 2) 스마트폰 카메라 기본 설정
+    # 2) 스마트폰 카메라 설정
     st.header("📱 스마트폰 카메라 설정")
     st.selectbox("제조사 선택", valid_phone_brands, key="sb_phone_brand", on_change=on_phone_brand_change)
-    
     cur_pb = st.session_state["sb_phone_brand"]
     p_models = list(CAMERA_PROFILES[cur_pb].keys())
     if st.session_state.get("sb_phone_model") not in p_models:
         st.session_state["sb_phone_model"] = p_models[0]
-        
     st.selectbox("기종 선택", p_models, key="sb_phone_model", on_change=on_phone_model_change)
 
     st.markdown("---")
@@ -587,7 +588,7 @@ with st.sidebar:
             if st.button("📂 불러오기", use_container_width=True):
                 loaded_color = selected_row.get("color_name", "")
                 st.session_state.color_name = loaded_color
-                st.session_state["color_name_input"] = loaded_color # 입력창 데이터 100% 반영
+                st.session_state["color_name_input"] = loaded_color
                 
                 st.session_state.current_stage = selected_row["stage"]
                 if selected_row.get("brand") in valid_brands:
@@ -599,7 +600,6 @@ with st.sidebar:
                 except Exception: pass
                 
                 if "editor_active_recipe" in st.session_state: del st.session_state["editor_active_recipe"]
-                
                 st.toast(f"📂 '{selected_row['title']}' 내역을 성공적으로 불러왔습니다!")
                 st.rerun()
         with col_s2:
@@ -644,7 +644,6 @@ with tab_tuning:
     
     col_c1, col_c2 = st.columns([3.5, 1])
     with col_c1:
-        # key="color_name_input" 연결로 데이터 불러오기 시 즉시 표시
         input_color_val = st.text_input(
             "차종 및 목표 색상코드/색상명을 입력하세요",
             placeholder="예: 기아 ABT, 현대 SWP 등",
@@ -699,12 +698,12 @@ with tab_tuning:
     st.markdown("---")
     
     # ----------------------------------------------------
-    # 3. 배합 레시피 작성 (★ 표 내부 직접 연관검색 드롭다운 방식 적용 ★)
+    # 3. 배합 레시피 작성 (★ 표 내부 셀 직접 입력/연관검색 드롭다운 적용 ★)
     # ----------------------------------------------------
     st.subheader(f"3. {prev_stage_code if not is_stage_1 else '1차 기본'} 배합 레시피 ({current_brand})")
     
     if is_stage_1:
-        st.caption("📷 **배합표 사진 인식**: 사진을 촬영하여 표에 수치를 자동 채우거나, 아래 표에서 직접 안료 코드를 선택/검색하세요.")
+        st.caption("📷 **배합표 사진 인식**: 사진을 촬영하여 표에 수치를 자동 채우거나, 아래 표의 안료 코드 셀을 클릭하여 직접 입력하세요.")
         cam_r = st.camera_input("배합표 카드 촬영 (선택)", key="cam_recipe")
         file_r = st.file_uploader("카드 사진 업로드 (선택)", type=["jpg", "png"], key="file_recipe")
         
@@ -720,18 +719,17 @@ with tab_tuning:
                         st.rerun()
                     else: st.warning("인식 실패. 아래 표에서 직접 선택해 주세요.")
 
-    st.write(f"📋 **{current_brand} 배합표 (표 내부의 안료 코드 셀을 클릭하면 연관 안료가 자동으로 검색됩니다):**")
+    st.write(f"📋 **{current_brand} 확정 배합표 (표의 안료 코드 셀을 클릭하면 연관 안료가 자동으로 필터링됩니다):**")
     
-    # 선택된 브랜드를 기반으로 한 안료 목록
     current_brand_pigments = BRAND_CONFIGS[current_brand].get("pigments", [])
     
-    # ★ 표 내부 셀을 연관 검색 가능한 SelectboxColumn으로 세팅! ★
+    # ★ 표 내부 셀을 직접 선택 및 키보드 검색 가능한 SelectboxColumn으로 적용 ★
     st.session_state.recipe_table_df = st.data_editor(
         st.session_state.recipe_table_df,
         column_config={
             "안료 코드": st.column_config.SelectboxColumn(
-                "안료 코드 (클릭 후 번호 입력 시 연관 안료 자동 필터링)",
-                help="안료 코드를 선택하거나 번호를 입력하세요",
+                "안료 코드 (클릭 후 안료번호 입력 시 연관 안료 필터링)",
+                help="셀 클릭 후 번호(예: 7, 7800)를 입력하여 안료를 선택하세요",
                 width="large",
                 options=current_brand_pigments,
                 required=True
