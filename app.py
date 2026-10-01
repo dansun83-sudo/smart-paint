@@ -277,7 +277,7 @@ def extract_df_from_recipe_image(client, image_bytes, brand_name):
         return None
 
 # ----------------------------------------------------
-# 2. 페이지 설정 및 상태(Single Source of Truth) 초기화
+# 2. 페이지 설정 및 세션 단일 동기화 초기화
 # ----------------------------------------------------
 st.set_page_config(
     page_title="Multi-Brand AI Smart Color System",
@@ -299,7 +299,6 @@ if HAS_SUPABASE_LIB and "SUPABASE_URL" in st.secrets and "SUPABASE_KEY" in st.se
 valid_brands = list(BRAND_CONFIGS.keys())
 valid_phone_brands = list(CAMERA_PROFILES.keys())
 
-# 단일 세션 상태(Single Source of Truth) 보장
 if "pref_brand" not in st.session_state or st.session_state.pref_brand not in valid_brands:
     st.session_state.pref_brand = valid_brands[0]
 
@@ -351,7 +350,7 @@ def reset_workspace():
     for k in keys_to_delete:
         del st.session_state[k]
 
-# ★ CSS: 버튼 위치를 가리던 상단 투명화 코드를 지우고 사이드바 토글 버튼(>)을 확실하게 스타일링 ★
+# ★ CSS: 상단 헤더 투명화 제거 및 사이드바 버튼(>) 확실한 스타일링 적용 ★
 st.markdown("""<style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     html, body, [class*="css"] { font-family: 'Pretendard', -apple-system, sans-serif; }
@@ -363,7 +362,7 @@ st.markdown("""<style>
     [class*="viewerBadge"] {display: none !important;}
     iframe {display: none !important;}
 
-    /* ★ 사이드바 열기/닫기 토글 버튼(>)을 눈에 잘 보이게 파란색 버튼으로 지정 ★ */
+    /* ★ 사이드바 열기/닫기 토글 버튼(>) 선명한 파란색 사각형 스타일 ★ */
     [data-testid="stSidebarCollapsedControl"],
     [data-testid="stSidebarExpandControl"],
     button[aria-label*="sidebar"],
@@ -516,7 +515,7 @@ def db_delete_work(history_id):
         except Exception: pass
 
 # ----------------------------------------------------
-# 5. 좌측 사이드바 (완벽한 단일 세션 상태 동기화)
+# 5. 좌측 사이드바 (단일 동기화)
 # ----------------------------------------------------
 with st.sidebar:
     st.markdown(f"👤 **접속 계정**: `{st.session_state.current_user}`")
@@ -527,7 +526,7 @@ with st.sidebar:
 
     st.markdown("---")
     
-    # 1) 도료 브랜드 설정 (index 기반 완벽 동기화)
+    # 1) 도료 브랜드 설정
     st.header("🎨 도료 브랜드 설정")
     b_idx = valid_brands.index(st.session_state.pref_brand)
     new_brand = st.selectbox("브랜드 변경", valid_brands, index=b_idx, key="sb_widget_brand")
@@ -545,7 +544,7 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # 2) 스마트폰 카메라 제조사 & 기종 설정 (index 기반 완벽 동기화)
+    # 2) 스마트폰 카메라 제조사 & 기종 설정
     st.header("📱 스마트폰 카메라 설정")
     pb_idx = valid_phone_brands.index(st.session_state.pref_phone_brand)
     new_p_brand = st.selectbox("제조사 선택", valid_phone_brands, index=pb_idx, key="sb_widget_phone_brand")
@@ -722,7 +721,6 @@ with tab_tuning:
 
     st.write(f"📋 **{current_brand} 확정 배합표 (표 안료 코드 셀을 클릭한 뒤 번호(예: 7)를 입력하면 연관 안료가 정렬됩니다):**")
     
-    # 선택된 브랜드를 기반으로 한 안료 목록 구성
     current_brand_pigments = list(BRAND_CONFIGS[current_brand].get("pigments", []))
     existing_codes = st.session_state.recipe_table_df["안료 코드"].dropna().unique().tolist()
     for code in existing_codes:
