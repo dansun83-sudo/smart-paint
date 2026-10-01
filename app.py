@@ -55,8 +55,8 @@ BRAND_CONFIGS = {
         "code_example": "Q-9760: 88.0g, Q-9800: 60.3g",
         "pigments": [
             "Q-7000", "Q-7100", "Q-7200", "Q-7300", "Q-7350", "Q-7400", "Q-7450", 
-            "Q-7500", "Q-7600", "Q-7700", "Q-7800", "Q-7900", "Q-9100", "Q-9200", 
-            "Q-9300", "Q-9400", "Q-9500", "Q-9600", "Q-9700", "Q-9760", "Q-9800", "Q-9900"
+            "Q-7500", "Q-7600", "Q-7700", "Q-7800", "Q-7900", "Q-8000",
+            "Q-9100", "Q-9200", "Q-9300", "Q-9400", "Q-9500", "Q-9600", "Q-9700", "Q-9760", "Q-9800", "Q-9900"
         ]
     },
     "시켄스 옵티마 (노루/Sikkens Optima)": {
@@ -368,7 +368,7 @@ def reset_workspace():
     for k in keys_to_delete:
         del st.session_state[k]
 
-# ★★★ 모바일/웹 사이드바 토글 버튼(>) 상시 고정을 위한 CSS ★★★
+# ★★★ 모바일 아이폰 노치 아래 안전영역(top: 65px) 사이드바 열기/닫기 버튼 고정 CSS ★★★
 st.markdown("""<style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     html, body, [class*="css"] { font-family: 'Pretendard', -apple-system, sans-serif; }
@@ -380,37 +380,40 @@ st.markdown("""<style>
     [class*="viewerBadge"] {display: none !important;}
     iframe {display: none !important;}
 
-    /* ★ 헤더 위치 고정 및 사이드바 버튼(>) 무조건 최상단 노출 ★ */
-    header[data-testid="stHeader"] {
-        background: transparent !important;
-        z-index: 999999 !important;
-    }
-    
+    /* ★ 헤더 및 사이드바 토글 버튼(>) 위치를 상단 노치 아래(top: 65px)로 선명하게 배치 ★ */
     [data-testid="stSidebarCollapsedControl"],
     [data-testid="stSidebarExpandControl"],
-    [data-testid="stHeader"] button[aria-label*="sidebar"],
-    [data-testid="stHeader"] button[aria-label*="Sidebar"] {
+    button[aria-label*="sidebar"],
+    button[aria-label*="Sidebar"] {
         display: flex !important;
         visibility: visible !important;
         opacity: 1 !important;
         z-index: 9999999 !important;
         position: fixed !important;
-        top: 10px !important;
-        left: 10px !important;
+        top: 65px !important;
+        left: 15px !important;
         background-color: #003375 !important;
         color: #FFFFFF !important;
         border: 2px solid #82B1FF !important;
-        border-radius: 8px !important;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
-        width: 44px !important;
-        height: 44px !important;
+        border-radius: 10px !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important;
+        width: 48px !important;
+        height: 48px !important;
+    }
+    
+    [data-testid="stSidebarCollapsedControl"] button svg,
+    [data-testid="stSidebarExpandControl"] button svg {
+        fill: #FFFFFF !important;
+        color: #FFFFFF !important;
+        width: 28px !important;
+        height: 28px !important;
     }
 
     .noroo-header-box {
         background: linear-gradient(135deg, #091936 0%, #003375 50%, #005BB5 100%);
         padding: 22px 28px; border-radius: 16px; color: #FFFFFF;
         box-shadow: 0 8px 24px rgba(0, 51, 117, 0.18);
-        margin-top: 10px;
+        margin-top: 50px; /* 상단 메뉴 버튼과 간격 확보 */
     }
     .noroo-brand-name { font-size: 13px; font-weight: 700; color: #82B1FF; letter-spacing: 2px; }
     .noroo-main-title { font-size: 23px; font-weight: 800; color: #FFFFFF; margin: 4px 0 0 0; }
@@ -523,7 +526,7 @@ def db_save_work(title_name, current_brand):
     if supabase_client:
         try:
             supabase_client.table("work_history").insert(payload).execute()
-            st.toast(f"☁️ '{title_name}' 저장 완료!", icon="💾")
+            st.toast(f"☁️️ '{title_name}' 저장 완료!", icon="💾")
             return True
         except Exception: return False
     return True
@@ -544,7 +547,7 @@ def db_delete_work(history_id):
         except Exception: pass
 
 # ----------------------------------------------------
-# 5. 좌측 사이드바
+# 5. 좌측 사이드바 (설정 및 불러오기 통형)
 # ----------------------------------------------------
 with st.sidebar:
     st.markdown(f"👤 **접속 계정**: `{st.session_state.current_user}`")
@@ -629,6 +632,9 @@ st.markdown(f"""<div class="noroo-header-box">
     <span class="noroo-brand-name">MULTI-BRAND AUTO COLOR SYSTEM</span>
     <h1 class="noroo-main-title">[{current_brand}] AI 스마트 조색 & 결함 진단</h1>
 </div>""", unsafe_allow_html=True)
+
+st.info("💡 **좌측 상단 파란색 버튼(`>`)**을 누르시면 도료 브랜드 변경, 카메라 기종 선택 및 작업 보관함을 열 수 있습니다.")
+
 st.markdown("---")
 
 tab_tuning, tab_defect = st.tabs([f"🎨 {current_brand} AI 미세 조색", "🔍 도장 결함 진단"])
@@ -719,7 +725,7 @@ with tab_tuning:
                         st.rerun()
                     else: st.warning("인식 실패. 아래 표에서 직접 선택해 주세요.")
 
-    st.write(f"📋 **{current_brand} 확정 배합표 (표의 안료 코드 셀을 클릭하면 연관 안료가 자동으로 필터링됩니다):**")
+    st.write(f"📋 **{current_brand} 확정 배합표 (표 내부의 안료 코드 셀을 클릭하면 연관 안료가 자동으로 필터링됩니다):**")
     
     current_brand_pigments = BRAND_CONFIGS[current_brand].get("pigments", [])
     
