@@ -1,7 +1,7 @@
 import streamlit as st
 from google import genai
 from google.genai.errors import APIError
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 import os
 import io
 import re
@@ -44,7 +44,7 @@ CAMERA_PROFILES = {
 }
 
 # ----------------------------------------------------
-# 0-2. 페인트 브랜드별 기본 설정 데이터베이스
+# 0-2. 페인트 브랜드별 기본 설정 & 연관 안료 코드 DB
 # ----------------------------------------------------
 BRAND_CONFIGS = {
     "WATER-Q (노루페인트)": {
@@ -52,61 +52,69 @@ BRAND_CONFIGS = {
         "regex_pattern": r"(Q-\d{3,4})\s*[:\=\|\s]+([\d\.]+)\s*g?",
         "thinner_info": "WATER-Q 수성 전용 희석제 규정 비율 준수",
         "special_rules": "Q-7000 사용 시 전체 배합 내 10% 이상 초과 금지 (초과 시 Q-7800/Q-7900 교체)",
-        "code_example": "Q-9760: 88.0g, Q-9800: 60.3g"
+        "code_example": "Q-9760: 88.0g, Q-9800: 60.3g",
+        "pigments": ["Q-7000 (플롭조절)", "Q-7800 (플롭대체)", "Q-7900 (플롭대체)", "Q-9100", "Q-9200", "Q-9300", "Q-9400", "Q-9500", "Q-9600", "Q-9760", "Q-9800", "Q-9900"]
     },
     "시켄스 옵티마 (노루/Sikkens Optima)": {
         "code_prefix": "안료 코드",
         "regex_pattern": r"([A-Za-z0-9\-\.]+)\s*[:\=\|\s]+([\d\.]+)\s*g?",
         "thinner_info": "★ 표준희석제 10% ~ 15% 희석 비율 필히 준수",
         "special_rules": "시켄스 옵티마 전용 하이솔리드 특성 고려, 표준희석제 10~15% 혼합 후 점도 측정 후 교반",
-        "code_example": "WB 334AB: 80.0g, WB 00: 20.0g"
+        "code_example": "WB 334AB: 80.0g, WB 00: 20.0g",
+        "pigments": ["WB 00 (바인더)", "WB 334AB", "WB 334", "WB 110", "WB 220", "WB 300", "WB 400", "WB 500", "WB 600", "WB 700"]
     },
     "시켄스 오토웨이브 2.0 (노루/Sikkens)": {
         "code_prefix": "안료 코드",
         "regex_pattern": r"([A-Za-z0-9\-\.]+)\s*[:\=\|\s]+([\d\.]+)\s*g?",
         "thinner_info": "오토웨이브 전용 수성 희석제 규정 비율 준수",
         "special_rules": "수성 베이스코트 전용 건조 시간 및 에어 블로우 규정 준수",
-        "code_example": "WB334: 50.0g, WB00: 10.0g"
+        "code_example": "WB334: 50.0g, WB00: 10.0g",
+        "pigments": ["WB00", "WB334", "WB110", "WB220", "WB300", "WB400", "WB500", "WB600", "WB700"]
     },
     "Glasurit 90Line (Glasurit)": {
         "code_prefix": "안료 코드",
         "regex_pattern": r"(90-[A-Za-z0-9]+)\s*[:\=\|\s]+([\d\.]+)\s*g?",
         "thinner_info": "93-E3 / 93-E10 전용 희석제 50% 혼합",
         "special_rules": "Glasurit 90Line 전용 교반 및 플롭 조절제 투입 수칙 준수",
-        "code_example": "90-M4: 70.0g, 90-A010: 15.0g"
+        "code_example": "90-M4: 70.0g, 90-A010: 15.0g",
+        "pigments": ["90-M4", "90-A010", "90-M1", "90-A100", "90-A200", "90-A300", "90-A400", "90-M5"]
     },
     "R-M 오닉스 HD (삼화/R-M Onyx)": {
         "code_prefix": "안료 코드",
         "regex_pattern": r"([A-Z]{1,2}\d{3,4})\s*[:\=\|\s]+([\d\.]+)\s*g?",
         "thinner_info": "Hydropure 전용 희석제 규정 비율 준수",
         "special_rules": "오닉스 HD 전용 점도 및 입자 정렬 가이드 적용",
-        "code_example": "HB010: 60.0g, CB020: 30.0g"
+        "code_example": "HB010: 60.0g, CB020: 30.0g",
+        "pigments": ["HB010", "CB020", "HB020", "HB030", "CB010", "CB030", "HB100"]
     },
     "수믹스 (KCC/Sumix)": {
         "code_prefix": "안료 코드",
         "regex_pattern": r"(WT-\d{3,4})\s*[:\=\|\s]+([\d\.]+)\s*g?",
         "thinner_info": "KCC 수믹스 전용 수성 희석제 준수",
         "special_rules": "WT 수성 안료 계량 정밀도 확보",
-        "code_example": "WT-101: 50.0g, WT-202: 25.0g"
+        "code_example": "WT-101: 50.0g, WT-202: 25.0g",
+        "pigments": ["WT-101", "WT-202", "WT-100", "WT-303", "WT-404", "WT-505", "WT-606"]
     },
     "퍼마하이드 하이텍 (엑솔타/Permacron Hi-TEC)": {
         "code_prefix": "안료 코드",
         "regex_pattern": r"([A-Za-z0-9\-\.]+)\s*[:\=\|\s]+([\d\.]+)\s*g?",
         "thinner_info": "Permacron Hi-TEC 전용 컨트롤러 및 희석제 혼합 비율 준수",
         "special_rules": "퍼마하이드 하이텍 480 전용 단방향 스프레이 도포 및 건조 수칙 적용",
-        "code_example": "WT300: 45.0g, WT310: 15.0g"
+        "code_example": "WT300: 45.0g, WT310: 15.0g",
+        "pigments": ["WT300", "WT310", "WT320", "WT330", "WT340", "WT350"]
     },
     "엔바이로베이스 (PPG/Envirobase)": {
         "code_prefix": "안료 코드",
         "regex_pattern": r"([T|P]\d{3,4})\s*[:\=\|\s]+([\d\.]+)\s*g?",
         "thinner_info": "PPG T494 / T495 전용 희석제 준수",
         "special_rules": "PPG 하이솔리드 마이크로 펄 조색 수칙 준수",
-        "code_example": "T400: 55.0g, P990-1: 20.0g"
+        "code_example": "T400: 55.0g, P990-1: 20.0g",
+        "pigments": ["T400", "P990-1", "T401", "T402", "P990-2", "T410"]
     }
 }
 
 # ----------------------------------------------------
-# 1. 이미지 처리 함수
+# 1. 이미지 처리 & 배합표 이미지 카드 생성 함수
 # ----------------------------------------------------
 def load_and_resize(image_file_or_bytes, max_size=(2500, 2500)):
     if isinstance(image_file_or_bytes, bytes):
@@ -149,6 +157,69 @@ def create_3way_split_view(bytes_prev, bytes_target, bytes_curr, crop_ratio=0.4)
     merged_img.paste(c2_resized, (w1 + wt, 0))
     return merged_img
 
+def create_recipe_image_card(brand_name, color_name, stage_code, recipe_df, total_weight, thinner_info, special_rules):
+    """수정된 배합표를 깔끔한 이미지 카드(PNG)로 생성해주는 함수"""
+    if recipe_df is None or recipe_df.empty:
+        rows = []
+    else:
+        rows = recipe_df.to_dict('records')
+        
+    num_rows = max(len(rows), 1)
+    card_w = 800
+    card_h = 240 + (num_rows + 1) * 45 + 160
+    
+    img = Image.new("RGB", (card_w, card_h), color=(250, 250, 250))
+    draw = ImageDraw.Draw(img)
+    
+    # 상단 딥블루 헤더
+    draw.rectangle([(0, 0), (card_w, 100)], fill=(9, 25, 54))
+    draw.text((30, 22), "MULTI-BRAND AUTO COLOR SYSTEM", fill=(130, 177, 255))
+    draw.text((30, 52), f"[{brand_name}] {stage_code} 조색 처방 리포트", fill=(255, 255, 255))
+    
+    # 메타 정보 박스
+    draw.rectangle([(30, 115), (card_w - 30, 195)], fill=(235, 248, 255), outline=(49, 130, 206), width=2)
+    today_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+    draw.text((45, 132), f"■ 차종 및 색상명/코드: {color_name if color_name else '미지정'}", fill=(15, 23, 42))
+    draw.text((45, 162), f"■ 발행 일시: {today_str}   |   목표 배합 총 중량: {total_weight:.1f}g", fill=(15, 23, 42))
+    
+    # 테이블 헤더
+    table_top = 215
+    draw.rectangle([(30, table_top), (card_w - 30, table_top + 40)], fill=(0, 51, 117))
+    draw.text((50, table_top + 12), "안료 코드 (Pigment Code)", fill=(255, 255, 255))
+    draw.text((420, table_top + 12), "배합 중량 (g)", fill=(255, 255, 255))
+    draw.text((620, table_top + 12), "비율 (%)", fill=(255, 255, 255))
+    
+    curr_y = table_top + 40
+    calc_total = sum([float(r.get("1차 배합 중량 (g)", 0) or 0) for r in rows]) if rows else 0.0
+    
+    for idx, r in enumerate(rows):
+        bg_color = (255, 255, 255) if idx % 2 == 0 else (241, 245, 249)
+        draw.rectangle([(30, curr_y), (card_w - 30, curr_y + 40)], fill=bg_color, outline=(226, 232, 240))
+        code_val = str(r.get("안료 코드", "") or "")
+        weight_val = float(r.get("1차 배합 중량 (g)", 0) or 0)
+        ratio_val = (weight_val / calc_total * 100) if calc_total > 0 else 0.0
+        
+        draw.text((50, curr_y + 12), code_val, fill=(15, 23, 42))
+        draw.text((420, curr_y + 12), f"{weight_val:.2f} g", fill=(15, 23, 42))
+        draw.text((620, curr_y + 12), f"{ratio_val:.1f} %", fill=(71, 85, 105))
+        curr_y += 40
+        
+    # 합계 행
+    draw.rectangle([(30, curr_y), (card_w - 30, curr_y + 45)], fill=(226, 232, 240), outline=(148, 163, 184), width=2)
+    draw.text((50, curr_y + 14), "합계 총 중량 (Total Weight)", fill=(15, 23, 42))
+    draw.text((420, curr_y + 14), f"{calc_total:.2f} g", fill=(0, 51, 117))
+    draw.text((620, curr_y + 14), "100.0 %", fill=(0, 51, 117))
+    curr_y += 60
+    
+    # 희석 가이드 박스
+    draw.rectangle([(30, curr_y), (card_w - 30, curr_y + 75)], fill=(254, 243, 199), outline=(217, 119, 6), width=2)
+    draw.text((45, curr_y + 15), f"희석 수칙: {thinner_info[:55]}", fill=(180, 83, 9))
+    draw.text((45, curr_y + 42), f"특수 수칙: {special_rules[:55]}", fill=(180, 83, 9))
+    
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
+
 def extract_recipe_df_from_ai_text(text, brand_name):
     if not text: return None
     try:
@@ -189,7 +260,7 @@ def extract_df_from_recipe_image(client, image_bytes, brand_name):
         return None
 
 # ----------------------------------------------------
-# 2. 페이지 설정 및 초기화
+# 2. 페이지 설정 및 세션 초기화
 # ----------------------------------------------------
 st.set_page_config(page_title="Multi-Brand AI Smart Color System", page_icon="🎨", layout="wide", initial_sidebar_state="expanded")
 
@@ -203,11 +274,9 @@ if HAS_SUPABASE_LIB and "SUPABASE_URL" in st.secrets and "SUPABASE_KEY" in st.se
     try: supabase_client = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
     except Exception: pass
 
-# --- 기본 변수 정의 ---
 valid_brands = list(BRAND_CONFIGS.keys())
 valid_phone_brands = list(CAMERA_PROFILES.keys())
 
-# 위젯 state 초기화
 if "sb_brand" not in st.session_state: st.session_state["sb_brand"] = valid_brands[0]
 if "sb_phone_brand" not in st.session_state: st.session_state["sb_phone_brand"] = valid_phone_brands[0]
 if "sb_phone_model" not in st.session_state: st.session_state["sb_phone_model"] = list(CAMERA_PROFILES[st.session_state["sb_phone_brand"]].keys())[0]
@@ -227,7 +296,6 @@ if "ai_result_text" not in st.session_state: st.session_state.ai_result_text = "
 if "show_next_btn" not in st.session_state: st.session_state.show_next_btn = False
 if "is_passed" not in st.session_state: st.session_state.is_passed = False
 
-# --- 사이드바 설정 변경 시 클라우드 동기화 콜백 ---
 def on_brand_change():
     if supabase_client and st.session_state.get("logged_in"):
         try: supabase_client.auth.update_user({"data": {"pref_brand": st.session_state["sb_brand"]}})
@@ -277,7 +345,7 @@ def reset_workspace():
     for k in keys_to_delete:
         del st.session_state[k]
 
-# Custom CSS
+# ★ 모바일 토글 버튼(>) 상시 고정을 위한 핵심 CSS 적용 ★
 st.markdown("""<style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     html, body, [class*="css"] { font-family: 'Pretendard', -apple-system, sans-serif; }
@@ -288,6 +356,32 @@ st.markdown("""<style>
     .stAppDeployButton {display: none !important;}
     [class*="viewerBadge"] {display: none !important;}
     iframe {display: none !important;}
+
+    /* ★ 모바일 사이드바 열기 버튼(>) 좌측 상단 강제 고정 ★ */
+    [data-testid="stSidebarCollapsedControl"] {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        z-index: 9999999 !important;
+        position: fixed !important;
+        top: 10px !important;
+        left: 10px !important;
+    }
+    [data-testid="stSidebarCollapsedControl"] button {
+        background-color: #003375 !important;
+        color: #FFFFFF !important;
+        border: 1px solid #82B1FF !important;
+        border-radius: 8px !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+        width: 44px !important;
+        height: 44px !important;
+    }
+    [data-testid="stSidebarCollapsedControl"] button svg {
+        fill: #FFFFFF !important;
+        color: #FFFFFF !important;
+        width: 26px !important;
+        height: 26px !important;
+    }
 
     .noroo-header-box {
         background: linear-gradient(135deg, #091936 0%, #003375 50%, #005BB5 100%);
@@ -339,7 +433,6 @@ if not st.session_state.logged_in:
                             user_meta = res.user.user_metadata
                             st.session_state.current_user = user_meta.get("display_name", res.user.email.split("@")[0])
                             
-                            # 로그인 성공 시 클라우드 저장 설정으로 위젯 키 복원
                             if user_meta.get("pref_brand") in valid_brands: 
                                 st.session_state["sb_brand"] = user_meta.get("pref_brand")
                             if user_meta.get("pref_phone_brand") in valid_phone_brands:
@@ -427,7 +520,7 @@ def db_delete_work(history_id):
         except Exception: pass
 
 # ----------------------------------------------------
-# 5. 좌측 사이드바 (기본 설정 및 내역 불러오기 통형 구현)
+# 5. 좌측 사이드바 (기본 설정 통합)
 # ----------------------------------------------------
 with st.sidebar:
     st.markdown(f"👤 **접속 계정**: `{st.session_state.current_user}`")
@@ -438,7 +531,7 @@ with st.sidebar:
 
     st.markdown("---")
     
-    # 1) 도료 브랜드 기본 설정
+    # 1) 도료 브랜드 설정
     st.header("🎨 도료 브랜드 설정")
     st.selectbox("브랜드 선택", valid_brands, key="sb_brand", on_change=on_brand_change)
     cur_b = st.session_state["sb_brand"]
@@ -446,15 +539,13 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # 2) 스마트폰 카메라 기본 설정
+    # 2) 스마트폰 카메라 설정
     st.header("📱 스마트폰 카메라 설정")
     st.selectbox("제조사 선택", valid_phone_brands, key="sb_phone_brand", on_change=on_phone_brand_change)
-    
     cur_pb = st.session_state["sb_phone_brand"]
     p_models = list(CAMERA_PROFILES[cur_pb].keys())
     if st.session_state.get("sb_phone_model") not in p_models:
         st.session_state["sb_phone_model"] = p_models[0]
-        
     st.selectbox("기종 선택", p_models, key="sb_phone_model", on_change=on_phone_model_change)
 
     st.markdown("---")
@@ -473,7 +564,7 @@ with st.sidebar:
             if st.button("📂 불러오기", use_container_width=True):
                 loaded_color = selected_row.get("color_name", "")
                 st.session_state.color_name = loaded_color
-                st.session_state["color_name_input"] = loaded_color # 입력창 데이터 100% 반영
+                st.session_state["color_name_input"] = loaded_color # ★ 입력창 메모리 즉시 갱신
                 
                 st.session_state.current_stage = selected_row["stage"]
                 if selected_row.get("brand") in valid_brands:
@@ -485,7 +576,6 @@ with st.sidebar:
                 except Exception: pass
                 
                 if "editor_1" in st.session_state: del st.session_state["editor_1"]
-                
                 st.toast(f"📂 '{selected_row['title']}' 내역을 성공적으로 불러왔습니다!")
                 st.rerun()
         with col_s2:
@@ -530,7 +620,7 @@ with tab_tuning:
     
     col_c1, col_c2 = st.columns([3.5, 1])
     with col_c1:
-        # key="color_name_input" 연결로 데이터 불러오기 시 즉시 표시
+        # key="color_name_input" 주입으로 불러오기 클릭 시 자동 채움!
         input_color_val = st.text_input(
             "차종 및 목표 색상코드/색상명을 입력하세요",
             placeholder="예: 기아 ABT, 현대 SWP 등",
@@ -583,53 +673,79 @@ with tab_tuning:
         st.image(create_3way_split_view(st.session_state.prev_sample_bytes, st.session_state.target_img_bytes, st.session_state.temp_sample_bytes, crop_ratio=0.4), caption=f"◀️ {prev_stage_code} 시편 | 🎯 목표 차체 [{st.session_state.color_name}] | {stage_code} 신규 시편 ▶️", use_container_width=True)
 
     st.markdown("---")
-    col_r1, col_r2 = st.columns([1.2, 0.8])
+    
+    # ----------------------------------------------------
+    # 3. 1차 기본 배합 레시피 (연관 안료 검색 및 표 입력 개선)
+    # ----------------------------------------------------
+    st.subheader(f"3. {prev_stage_code if not is_stage_1 else '1차 기본'} 배합 레시피 ({current_brand})")
+    
+    if is_stage_1:
+        r_tab1, r_tab2 = st.tabs(["📷 카드 촬영 / OCR 업로드", "✍️ 안료 표 연관검색 및 빠른 작성"])
+        recipe_img_bytes = None
+        
+        with r_tab1:
+            cam_r = st.camera_input("배합표 촬영", key="cam_recipe")
+            file_r = st.file_uploader("카드 사진 업로드", type=["jpg", "png"], key="file_recipe")
+            if cam_r: recipe_img_bytes = cam_r.getvalue()
+            elif file_r: recipe_img_bytes = file_r.getvalue()
 
-    with col_r1:
-        if is_stage_1:
-            st.subheader(f"3. 1차 기본 배합 레시피 ({current_brand})")
-            r_tab1, r_tab2 = st.tabs(["📷 카드 촬영/업로드", "✍️ 직접 작성"])
-            recipe_img_bytes = None
-            with r_tab1:
-                cam_r = st.camera_input("배합표 촬영", key="cam_recipe")
-                file_r = st.file_uploader("카드 사진 업로드", type=["jpg", "png"], key="file_recipe")
-                if cam_r: recipe_img_bytes = cam_r.getvalue()
-                elif file_r: recipe_img_bytes = file_r.getvalue()
+            if recipe_img_bytes:
+                st.image(Image.open(io.BytesIO(recipe_img_bytes)), width=300)
+                if st.button("🔍 카드 사진에서 안료 수치 읽기"):
+                    with st.spinner("AI 분석 중..."):
+                        df = extract_df_from_recipe_image(client, recipe_img_bytes, current_brand)
+                        if df is not None and not df.empty:
+                            st.session_state.recipe_table_df = df
+                            st.success("자동 입력 완료!")
+                            st.rerun()
+                        else: st.warning("인식 실패. 아래 안료 표에 직접 입력해 주세요.")
 
-                if recipe_img_bytes:
-                    st.image(Image.open(io.BytesIO(recipe_img_bytes)), width=350)
-                    if st.button("🔍 사진에서 안료 수치 읽기"):
-                        with st.spinner("AI 분석 중..."):
-                            df = extract_df_from_recipe_image(client, recipe_img_bytes, current_brand)
-                            if df is not None and not df.empty:
-                                st.session_state.recipe_table_df = df; st.success("자동 입력 완료!"); st.rerun()
-                            else: st.warning("인식 실패. 직접 입력해 주세요.")
-            with r_tab2:
-                r_txt = st.text_area("직접 작성", value="", placeholder=BRAND_CONFIGS[current_brand]['code_example'], key="r_text")
-                if r_txt.strip():
-                    df = extract_recipe_df_from_ai_text(r_txt, current_brand)
-                    if df is not None and not df.empty: st.session_state.recipe_table_df = df
+        with r_tab2:
+            st.caption("💡 **연관 안료 검색 안내**: 아래 드롭다운에서 안료 코드의 앞자리(예: Q-, WB, 90-)를 입력하시거나 연관 목록 중 선택하세요.")
+            
+            pigment_options = BRAND_CONFIGS[current_brand].get("pigments", [])
+            
+            col_add1, col_add2, col_add3 = st.columns([2.5, 1.5, 1])
+            with col_add1:
+                sel_pigment = st.selectbox("안료 코드 검색/선택", pigment_options + ["직접 입력 코드"], key="quick_pigment_select")
+            with col_add2:
+                if sel_pigment == "직접 입력 코드":
+                    custom_code = st.text_input("직접 코드 입력", placeholder="예: Q-9900", key="quick_custom_code").upper().strip()
+                else:
+                    custom_code = sel_pigment.split(" ")[0].strip()
+            with col_add3:
+                add_weight = st.number_input("배합량 (g)", min_value=0.0, value=10.0, step=1.0, key="quick_add_weight")
+                
+            if st.button("➕ 안료 행 추가하기", use_container_width=True):
+                target_code = custom_code if sel_pigment == "직접 입력 코드" else custom_code
+                if target_code:
+                    curr_df = st.session_state.recipe_table_df.copy()
+                    # 빈 행 제거 후 추가
+                    curr_df = curr_df[curr_df["안료 코드"] != ""]
+                    new_row = pd.DataFrame({"안료 코드": [target_code], "1차 배합 중량 (g)": [add_weight]})
+                    updated_df = pd.concat([curr_df, new_row], ignore_index=True)
+                    st.session_state.recipe_table_df = updated_df
+                    st.toast(f"✅ [{target_code}: {add_weight}g] 추가 완료!")
+                    st.rerun()
 
-            st.write(f"📋 **1차 배합표 ({current_brand}):**")
-            st.session_state.recipe_table_df = st.data_editor(st.session_state.recipe_table_df, use_container_width=True, num_rows="dynamic", key="editor_1")
-        else:
-            st.subheader(f"3. {prev_stage_code} 확정 레시피 ({current_brand})")
-            st.session_state.recipe_table_df = st.data_editor(st.session_state.recipe_table_df, use_container_width=True, num_rows="dynamic", key=f"editor_{stage_code}")
-
-    with col_r2:
-        st.subheader(f"4. {stage_code} 목표 중량 및 측색기")
-        target_total_weight = st.number_input("🎯 총 중량 (g)", min_value=10.0, value=100.0, step=10.0, key=f"weight_{stage_code}")
-        lab_data = st.text_input("측색기 수치 (선택)", placeholder="예: L*: 45.2, a*: 12.3", key=f"lab_{stage_code}")
+    st.write(f"📋 **현재 배합표 수치 (표에서 중량 직접 수정 및 행 추가/삭제 가능):**")
+    st.session_state.recipe_table_df = st.data_editor(
+        st.session_state.recipe_table_df,
+        use_container_width=True,
+        num_rows="dynamic",
+        key="editor_active_recipe"
+    )
 
     st.markdown("---")
 
-    if st.button(f"🚀 [{current_brand}] {stage_code} AI 미세 조색 실행", type="primary", use_container_width=True):
+    # AI 실행 버튼 (기본 100g 분석 기준)
+    if st.button(f"🚀 [{current_brand}] {stage_code} AI 미세 조색 분석 실행 (기본 100g 기준)", type="primary", use_container_width=True):
         if not st.session_state.target_img_bytes or not st.session_state.temp_sample_bytes:
             st.warning("⚠️ 목표 사진과 시편 사진을 모두 등록해 주세요.")
         elif is_stage_1 and st.session_state.recipe_table_df.empty:
-            st.warning("⚠️ 배합표를 입력해 주세요.")
+            st.warning("⚠️ 배합표를 작성해 주세요.")
         else:
-            with st.spinner("AI 실시간 분석 중..."):
+            with st.spinner("AI 실시간 색공간 분석 중..."):
                 try:
                     img_t = load_and_resize(st.session_state.target_img_bytes)
                     img_c = load_and_resize(st.session_state.temp_sample_bytes)
@@ -637,15 +753,14 @@ with tab_tuning:
                     
                     prompt = f"""
                     [{current_brand}] 페인트 정밀 분석.
-                    - 색상명: {st.session_state.color_name}
+                    - 차종/색상명: {st.session_state.color_name}
                     - 배합표: \n{st.session_state.recipe_table_df.to_string(index=False)}
-                    - 목표량: {target_total_weight}g
-                    - 촬영: {current_camera} ({CAMERA_PROFILES[st.session_state['sb_phone_brand']][st.session_state['sb_phone_model']]})
-                    - 측색: {lab_data}
+                    - 기준 분석 중량: 100g
+                    - 촬영 기기: {current_camera} ({CAMERA_PROFILES[st.session_state['sb_phone_brand']][st.session_state['sb_phone_model']]})
                     {rag}
                     Delta E <= 0.5 판정 시 '[판정: 🎉 조색 완벽 합격 (Delta E <= 0.5)]' 명시.
                     아니면 '[판정: 🔺 미세 보정 필요]' 명시.
-                    표 출력형태: | 안료 코드 | {prev_stage_code} 중량 | {stage_code} 신규 중량 | 차이 | 처방 역할 |
+                    표 출력형태 (100g 기준): | 안료 코드 | {prev_stage_code} 중량 | {stage_code} 신규 중량 | 차이 | 처방 역할 |
                     """
                     res = client.models.generate_content(model="gemini-3.5-flash", contents=[img_t, img_c, prompt])
                     st.session_state.ai_result_text = res.text
@@ -656,15 +771,82 @@ with tab_tuning:
                     if df is not None and not df.empty: st.session_state.recipe_table_df = df
                 except Exception as e: st.error(f"오류: {e}")
 
+    # ----------------------------------------------------
+    # 6-1. AI 결과 분석 및 목표 배합량 재계산 & 카드 이미지 다운로드
+    # ----------------------------------------------------
     if st.session_state.ai_result_text:
-        st.markdown(f"### 📊 AI 리포트")
+        st.markdown("---")
+        st.markdown(f"### 📊 AI 색공간 리포트 & 배합 비율 조율")
         st.markdown(st.session_state.ai_result_text)
-        if st.session_state.is_passed: st.balloons(); st.success("🎉 완벽 합격! 성공 족보로 등록됩니다.")
-    if st.session_state.show_next_btn and not st.session_state.is_passed:
-        st.button(f"➡️ {current_stage + 1}차 조색으로 진행", on_click=go_next_stage, type="primary", use_container_width=True)
+        
+        if st.session_state.is_passed:
+            st.balloons()
+            st.success("🎉 Delta E <= 0.5 이하로 조색이 완벽히 합격 처리되었습니다! 성공 족보로 자동 등록됩니다.")
 
+        st.markdown("---")
+        
+        # ★ 내가 작업할 최종 목표 배합량 설정 & 이미지 다운로드 섹션 ★
+        st.subheader("⚖️ 최종 작업 목표 배합량 재계산 & 카드 다운로드")
+        
+        active_df = st.session_state.recipe_table_df.copy()
+        current_sum = active_df["1차 배합 중량 (g)"].sum() if not active_df.empty else 100.0
+        if current_sum <= 0: current_sum = 100.0
+        
+        target_work_weight = st.number_input(
+            "🎯 내가 현장에서 배합할 최종 목표 총 중량 (g)",
+            min_value=10.0,
+            max_value=10000.0,
+            value=float(round(current_sum, 1)),
+            step=10.0,
+            key="user_target_work_weight"
+        )
+        
+        # 비율에 맞춰 비례 재계산된 DataFrame
+        scaled_df = active_df.copy()
+        scale_factor = target_work_weight / current_sum
+        scaled_df["1차 배합 중량 (g)"] = scaled_df["1차 배합 중량 (g)"] * scale_factor
+        scaled_df["1차 배합 중량 (g)"] = scaled_df["1차 배합 중량 (g)"].round(2)
+        
+        st.write(f"📋 **[{target_work_weight:.1f}g 작업 기준] 최종 안료 계량표:**")
+        st.dataframe(scaled_df, use_container_width=True)
+        
+        # 배합표 카드 이미지 생성 및 다운로드 버튼
+        card_img_bytes = create_recipe_image_card(
+            brand_name=current_brand,
+            color_name=st.session_state.color_name,
+            stage_code=stage_code,
+            recipe_df=scaled_df,
+            total_weight=target_work_weight,
+            thinner_info=BRAND_CONFIGS[current_brand]["thinner_info"],
+            special_rules=BRAND_CONFIGS[current_brand]["special_rules"]
+        )
+        
+        download_filename = f"{datetime.now().strftime('%Y%m%d')}_{st.session_state.color_name if st.session_state.color_name else 'Color'}_배합표.png"
+        
+        col_down1, col_down2 = st.columns([1, 1])
+        with col_down1:
+            st.image(card_img_bytes, caption="📱 스마트폰 저장용 생성 이미지 카드 미리보기", use_container_width=True)
+        with col_down2:
+            st.write("📥 **스마트폰 갤러리에 카드 파일 저장**")
+            st.caption("아래 버튼을 터치하면 최종 배합 수치, 색상명, 안료 코드가 정갈하게 기록된 배합표 이미지 카드를 핸드폰으로 즉시 다운로드할 수 있습니다.")
+            st.download_button(
+                label="📥 배합표 카드 이미지 다운로드 (갤러리 저장)",
+                data=card_img_bytes,
+                file_name=download_filename,
+                mime="image/png",
+                type="primary",
+                use_container_width=True
+            )
+
+    if st.session_state.show_next_btn and not st.session_state.is_passed:
+        st.markdown("---")
+        st.button(f"➡️ {current_stage + 1}차 조색 단계로 진행하기", on_click=go_next_stage, type="primary", use_container_width=True)
+
+# ----------------------------------------------------
+# TAB 2: 도장 결함 진단 모듈
+# ----------------------------------------------------
 with tab_defect:
-    st.subheader(f"🔍 [{current_brand}] 도장 결함 진단")
+    st.subheader(f"🔍 [{current_brand}] 도장 결함 원인 분석 및 재작업 가이드")
     col1, col2 = st.columns(2)
     with col1:
         d_tab1, d_tab2 = st.tabs(["📷 카메라", "📁 갤러리"])
@@ -677,8 +859,9 @@ with tab_defect:
             if up_d: def_img = up_d.getvalue()
         if def_img: st.image(load_and_resize(def_img), use_container_width=True)
     with col2:
-        def_ctx = st.text_area("현장 증상 요약", placeholder="예: 오렌지필 현상, 건조 60도")
-    if st.button("🚨 진단 실행", type="primary", use_container_width=True):
+        def_ctx = st.text_area("현장 증상 요약", placeholder="예: 클리어 코트 도포 후 오렌지필 현상 발생. 건조 온도 60도.")
+
+    if st.button("🚨 결함 진단 실행", type="primary", use_container_width=True):
         if def_img:
             with st.spinner("분석 중..."):
                 res = client.models.generate_content(model="gemini-3.5-flash", contents=[load_and_resize(def_img), f"결함 진단. 브랜드:{current_brand}, 기기:{current_camera}, 증상:{def_ctx}"])
