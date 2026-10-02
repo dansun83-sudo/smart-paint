@@ -119,24 +119,77 @@ BRAND_CONFIGS = {
         "code_prefix": "90-Line 코드",
         "regex_pattern": r"(90-[A-Za-z0-9\/]+)\s*[:\=\|\s]+([\d\.]+)\s*g?",
         "thinner_info": "93-E3 (표준) / 93-E10 (고온) 전용 희석제 50% 정확 혼합",
-        "special_rules": "고농축 수성 베이스코트로 50% 희석비 엄수. 90-M4 플롭제어 및 수직 입자 배향 에어블로우 수칙 적용.",
+        "special_rules": "Abtöntabelle 정측면 보정 매트릭스 및 Multi-Effekt 펄 이동 수칙 적용. 93-E3/E10 50% 희석비 엄수.",
         "code_example": "90-M4: 70.0g, 90-A010: 15.0g",
         "pigments": [
-            "90-A010 (화이트)", "90-A100 (딥블랙)", "90-A200 (그래파이트)", "90-A300 (울트라마린)", 
-            "90-A400 (포레스트그린)", "90-A500 (선명적색)", "90-A600 (선명황색)", "90-M1 (파인메탈)", 
-            "90-M4 (플롭제어메탈)", "90-M5 (코스메탈)", "90-M99/1 (화이트펄)", "90-M99/2 (블루펄)", "90-M99/3 (레드펄)"
+            "90-A010 (화이트)", "90-A031 (은폐화이트)", "90-A032 (표준화이트)", "90-A035 (파인화이트)", 
+            "90-A100 (딥블랙)", "90-A105 (옐로우)", "90-A115 (브라이트옐로우)", "90-A136 (오렌지옐로우)", 
+            "90-A143 (황적색)", "90-A148 (그린옐로우)", "90-A155 (레몬옐로우)", "90-A177 (파스텔옐로우)", 
+            "90-A201 (오렌지)", "90-A306 (적색)", "90-A323 (선명적색)", "90-A329 (오렌지레드)", 
+            "90-A347 (크림슨레드)", "90-A349 (딥레드)", "90-A350 (마젠타레드)", "90-A352 (선명마젠타)", 
+            "90-A359 (바이올렛레드)", "90-A372 (비비드오렌지)", "90-A378 (딥마룬)", "90-A427 (딥바이올렛)", 
+            "90-A430 (바이올렛)", "90-A503 (시안블루)", "90-A527 (바이올렛블루)", "90-A531 (스카이블루)", 
+            "90-A532 (로열블루)", "90-A563 (딥블루)", "90-A589 (울트라마린블루)", "90-A640 (표준그린)", 
+            "90-A695 (황미그린)", "90-A696 (에메랄드그린)", "90-A924 (조색용블랙)", "90-A926 (딥블랙)", 
+            "90-A927 (제트블랙)", "90-A997 (고혹색도블랙)", "90-M1 (파인메탈)", "90-M4 (플롭제어메탈)", 
+            "90-M5 (코스메탈)", "90-M99/1 (화이트펄)", "90-M99/2 (블루펄)", "90-M99/3 (레드펄)"
+        ]
+    },
+    "퍼마하이드 하이텍 (엑솔타/Spies Hecker)": {
+        "code_prefix": "Hi-TEC WT 코드",
+        "regex_pattern": r"(WT\s*\d{3,4})\s*[:\=\|\s]+([\d\.]+)\s*g?",
+        "thinner_info": "WT 6050 (표준) / WT 6052 (저습도) 10%(솔리드) / 20%(이펙트) 혼합",
+        "special_rules": "WT 385/387 컴포넌트 필수 투입. WT 386 Flop Control 적용. 단방향 1-Visit (1.5 횟수도포) 적용.",
+        "code_example": "WT 321: 45.0g, WT 359: 15.0g",
+        "pigments": [
+            "WT 101 (Orange Radiant)", "WT 102 (Aluminum Pure Red)", "WT 112 (Magic Red)", "WT 144 (Green Blue)", 
+            "WT 154 (Blue Effect)", "WT 188 (Super Deep Black)", "WT 197 (Ultra Fine Silver)", "WT 199 (Magic Ice Effect)", 
+            "WT 300 (Transparent Maroon)", "WT 303 (Platinum Silver Extra Fine)", "WT 304 (Magic Sparkle)", "WT 308 (Bright Orange)", 
+            "WT 309 (Brilliant Magenta)", "WT 311 (Ruby Red)", "WT 315 (Fine Blue Pearl)", "WT 318 (Brilliant Blue)", 
+            "WT 320 (Platinum Pearl)", "WT 321 (White)", "WT 322 (Micro White)", "WT 323 (Special Black)", 
+            "WT 324 (Reddish Yellow)", "WT 327 (Yellow)", "WT 328 (Ochre)", "WT 329 (Transparent Yellow)", 
+            "WT 330 (Blood Orange)", "WT 331 (Translucent Oxide)", "WT 332 (Maroon)", "WT 333 (Granada Red)", 
+            "WT 334 (Oxide Red)", "WT 335 (Dark Yellow)", "WT 336 (Translucent Red)", "WT 337 (Red)", 
+            "WT 338 (Bluish Magenta)", "WT 339 (Violet)", "WT 340 (Yellow Magenta)", "WT 341 (Azure Blue)", 
+            "WT 342 (Dark Violet)", "WT 343 (Blue)", "WT 344 (Dark Blue)", "WT 345 (Transparent Emerald)", 
+            "WT 347 (Transparent Green)", "WT 348 (Transparent Azure)", "WT 349 (Translucent Green)", "WT 350 (Translucent Black)", 
+            "WT 351 (Translucent Azure)", "WT 352 (Translucent White)", "WT 353 (Translucent Magenta)", "WT 354 (Fine Silver)", 
+            "WT 355 (Brilliant Silver Coarse)", "WT 356 (Medium Silver)", "WT 357 (Micro Silver)", "WT 359 (Bright Silver)", 
+            "WT 360 (Coarse Silver)", "WT 361 (Brilliant Silver)", "WT 362 (Brilliant Silver Fine)", "WT 363 (Brilliant Gold)", 
+            "WT 364 (White Pearl)", "WT 365 (Lilac Pearl)", "WT 366 (Gold Pearl)", "WT 367 (Fine Green Pearl)", 
+            "WT 368 (Fine White Pearl)", "WT 369 (Red Pearl)", "WT 370 (Bright Blue Pearl)", "WT 371 (Brown Pearl)", 
+            "WT 372 (Fine Blue Pearl)", "WT 373 (Ruby Pearl)", "WT 374 (Blue Green Pearl)", "WT 375 (Green Pearl)", 
+            "WT 376 (Red Pearl Extra)", "WT 377 (Diamond White)", "WT 378 (Diamond Red)", "WT 379 (Diamond Copper)", 
+            "WT 380 (Diamond Green)", "WT 381 (Diamond Blue)", "WT 382 (Diamond Gold)", "WT 383 (Brilliant Orange)", 
+            "WT 385 (System Component A)", "WT 386 (Flop Control)", "WT 387 (System Component B)", "WT 389 (Platinum Silver Fine)", 
+            "WT 390 (Platinum Silver)", "WT 391 (Greenish Yellow)", "WT 393 (Light Yellow)", "WT 1500 (Ultra Deep Black)"
         ]
     },
     "R-M 오닉스 HD (삼화/R-M Onyx)": {
         "code_prefix": "Onyx 코드",
-        "regex_pattern": r"([H|C]B\d{3})\s*[:\=\|\s]+([\d\.]+)\s*g?",
+        "regex_pattern": r"([H|C]B\d{2,3}[A-Za-z]*)\s*[:\=\|\s]+([\d\.]+)\s*g?",
         "thinner_info": "Hydropure 전용 수성 희석제 규정 비율 준수",
-        "special_rules": "HB 시리즈(베이스)와 CB 시리즈(크리스탈/펄) 정밀 조합 및 Hydropure 희석 점도 관리.",
-        "code_example": "HB010: 60.0g, CB020: 30.0g",
+        "special_rules": "Chromatic Color Wheel 기준 정측면 명도 제어. HB090 Flop Control 적용. HB203 Deep Black 흑색도 기준.",
+        "code_example": "HB140: 60.0g, CB020: 30.0g",
         "pigments": [
-            "HB010 (베이스화이트)", "HB020 (베이스블랙)", "HB030 (인디고)", "HB100 (실버파인)", 
-            "HB200 (실버코스)", "HB300 (딥옐로우)", "HB400 (딥레드)", "CB010 (크리스탈화이트)", 
-            "CB020 (크리스탈펄)", "CB030 (레드펄)", "CB100 (플롭컨트롤)", "CB200 (바인더)"
+            "HB010 (베이스화이트)", "HB020 (베이스블랙)", "HB030 (인디고)", "HB090 (Flop Control)", 
+            "HB110 (Ultra Fine Aluminum)", "HB120 (Fine Aluminum)", "HB130 (Fine Aluminum)", "HB140 (Medium Aluminum)", 
+            "HB150 (Medium Aluminum)", "HB176 (Medium Shiney Aluminum)", "HB186 (Coarse Shiney Aluminum)", "HB200 (Blue Black)", 
+            "HB203 (Deep Black)", "HB250 (Standard Black)", "HB259 (Low Strength Black)", "HB260 (Satin Black)", 
+            "HB300 (Carbazole Violet)", "HB444 (Blue)", "HB460 (Green Blue)", "HB464 (Sapphire Blue)", 
+            "HB469 (Phthalo Blue II)", "HB471 (Phthalo Blue)", "HB540 (Blue-Green)", "HB564 (Yellow Green II)", 
+            "HB600 (Green Gold)", "HB610 (Yellow)", "HB617 (Organic Yellow)", "HB619 (Light Yellow)", 
+            "HB650 (Yellow Gold)", "HB670 (Yellow Oxide)", "HB680 (Gold)", "HB730 (Light Red)", 
+            "HB740 (Bright Orange)", "HB770 (Red Oxide)", "HB779 (Red Oxide)", "HB780 (Red Gold)", 
+            "HB821 (Bright Red)", "HB832 (Red II)", "HB855 (Light Maroon)", "HB860 (Red Maroon)", 
+            "HB861 (Maroon)", "HB870 (Magenta)", "HB880 (Red Violet)", "HB961 (Transparent White)", 
+            "HB990 (White)", "HB994 (Marble White)", "HB999 (Low Strength White)", "CB10K (Fine White Pearl 2)", 
+            "CB12L (Crystal Glass Pearl)", "CB34M (Violet Pearl)", "CB35L (Ultra Violet)", "CB38K (Blackberry Pearl)", 
+            "CB38L (Ultra White)", "CB45L (Blue Green Pearl)", "CB47M (Crystal Blue)", "CB54L (Green Pearl)", 
+            "CB56L (Moss Green Pearl)", "CB57M (Crystal Green)", "CB58M (Red Green Pearl)", "CB62L (Crystal Gold)", 
+            "CB63L (Super Brass Pearl)", "CB66V (Gold Aluminum)", "CB67V (Gold Aluminum)", "CB71V (Rich Bronze)", 
+            "CB73L (Crystal Copper)", "CB74L (Bright Copper Pearl)", "CB75K (Orange Pearl)", "CB85L (Red Pearl)", 
+            "CB87L (Flash Copper Pearl)", "SB202 (Deep Black II-Solvent)"
         ]
     },
     "수믹스 (KCC/Sumix)": {
@@ -151,30 +204,29 @@ BRAND_CONFIGS = {
             "WT-400 (황색)", "WT-404 (적색)", "WT-500 (화이트펄)", "WT-505 (블루펄)", "WT-600 (플롭조절제)"
         ]
     },
-    "퍼마하이드 하이텍 (엑솔타/Permacron Hi-TEC)": {
-        "code_prefix": "Hi-TEC WT 코드",
-        "regex_pattern": r"(WT\d{3,4})\s*[:\=\|\s]+([\d\.]+)\s*g?",
-        "thinner_info": "Permacron Hi-TEC 6050/6055 전용 컨트롤러 및 희석제 혼합",
-        "special_rules": "Hi-TEC 480 전용 단방향 1-Visit (중간 건조 없이 연속 도포) 스프레이 가이드 적용.",
-        "code_example": "WT300: 45.0g, WT320: 15.0g",
-        "pigments": [
-            "WT300 (화이트)", "WT301 (고은폐화이트)", "WT310 (피치블랙)", "WT320 (알루미늄파인)", 
-            "WT330 (알루미늄미디엄)", "WT340 (알루미늄코스)", "WT350 (브라이트펄)", "WT351 (간섭펄)", 
-            "WT360 (옵티컬펄)", "WT370 (블루안료)", "WT371 (딥블루)", "WT380 (레드안료)", 
-            "WT381 (마젠타)", "WT390 (플롭제어제)", "WT391 (바인더)"
-        ]
-    },
     "엔바이로베이스 (PPG/Envirobase)": {
         "code_prefix": "EHP 코드",
         "regex_pattern": r"([T|P]\d{3,4}(?:-\d)?)\s*[:\=\|\s]+([\d\.]+)\s*g?",
-        "thinner_info": "PPG T494 (표준) / T495 (고온) 전용 희석제 준수",
-        "special_rules": "PPG EHP 마이크로 펄 및 T400계열 알루미늄 고채도 오버레이 입자 제어 수칙.",
+        "thinner_info": "T494 (표준) / T495 (지건) + T492 Adjuster (10% Solid / 20% Effect / 30% Tri-coat)",
+        "special_rules": "T403 Micro White 정측면 명도 반전 제어. T4000번대 스파클/플레이크 고채도 수칙 적용.",
         "code_example": "T400: 55.0g, P990-1: 20.0g",
         "pigments": [
-            "T400 (마이크로화이트)", "T401 (제트블랙)", "T402 (알루미늄파인)", "T403 (알루미늄미디엄)", 
-            "T407 (딥블랙)", "T410 (알루미늄코스)", "T411 (스파클실버)", "T420 (트루블루)", 
-            "T430 (선명녹색)", "T440 (선명황색)", "T450 (선명적색)", "P990-1 (하이글로스펄)", 
-            "P990-2 (바이올렛펄)", "P991-1 (골드펄)", "P992-1 (플롭컨트롤)", "P993-1 (그린펄)"
+            "T400 (Clean White)", "T402 (Trace White)", "T403 (Micro White)", "T404 (Trace Blue Black)", 
+            "T405 (Graphite Black)", "T406 (Blue Black)", "T407 (Jet Black)", "T409 (Deep Black)", 
+            "T411 (Bright Blue)", "T412 (Blue)", "T413 (Transparent Blue)", "T414 (Dark Blue)", 
+            "T420 (Mid-shade Blue)", "T427 (Organic Yellow)", "T430 (Green)", "T431 (Yellow Green)", 
+            "T432 (Transoxide Red)", "T433 (Bright Orange)", "T435 (Salmon Red)", "T436 (Red Oxide)", 
+            "T438 (Rose)", "T440 (Trace Red Oxide)", "T441 (Carmine)", "T442 (Brown)", 
+            "T443 (Violet)", "T444 (Yellow)", "T445 (Transparent Magenta)", "T447 (Bright Red)", 
+            "T448 (Russet)", "T451 (Extra Fine White Pearl)", "T452 (Fine White Pearl)", "T453 (Standard White Pearl)", 
+            "T454 (Bright Red Pearl)", "T455 (Fine Blue Pearl)", "T456 (Standard Blue Pearl)", "T457 (Green Pearl)", 
+            "T460 (Yellow Pearl)", "T461 (Golden Yellow Pearl)", "T462 (Fine Red Pearl)", "T466 (Orange Pearl)", 
+            "T468 (Violet Pearl)", "T471 (Extra Fine Silver)", "T472 (Fine Lenticular Silver)", "T474 (Fine Metallic)", 
+            "T476 (Coarse Lenticular)", "T477 (Extra Coarse Silver)", "T479 (Extra Coarse Silver)", "T4000 (Crystal Silver)", 
+            "T4001 (Sunbeam Gold)", "T4002 (Radiant Red)", "T4003 (Galaxy Blue)", "T4004 (Stellar Green)", 
+            "T4007 (Cosmic Turquoise)", "T4008 (Amethyst Dream)", "T4018 (Prism Silver)", "T4031 (Arctic Fire)", 
+            "T4034 (Tropic Sunrise)", "T4035 (Lapis Sunlight)", "T4040 (Orange Flash)", "T4042 (Blue Aluminum)", 
+            "P990-1 (High Gloss Pearl)", "P990-2 (Violet Pearl)", "P991-1 (Gold Pearl)", "P992-1 (Flop Control)"
         ]
     }
 }
@@ -780,7 +832,7 @@ with tab_tuning:
                         st.rerun()
                     else: st.warning("인식 실패. 아래 표에서 직접 선택해 주세요.")
 
-    st.write(f"📋 **{current_brand} 확정 배합표 (표 안료 코드 셀을 클릭한 뒤 번호(예: 7, MM 800)를 입력하면 연관 안료가 정렬됩니다):**")
+    st.write(f"📋 **{current_brand} 확정 배합표 (표 안료 코드 셀을 클릭한 뒤 번호(예: 7, WT 321)를 입력하면 연관 안료가 정렬됩니다):**")
     
     current_brand_pigments = list(BRAND_CONFIGS[current_brand].get("pigments", []))
     existing_codes = st.session_state.recipe_table_df["안료 코드"].dropna().unique().tolist()
@@ -796,7 +848,7 @@ with tab_tuning:
         column_config={
             "안료 코드": st.column_config.SelectboxColumn(
                 "안료 코드",
-                help="셀 클릭 후 안료 번호(예: 7, 7800, MM 800)를 입력하세요",
+                help="셀 클릭 후 안료 번호(예: 7, 7800, WT 321)를 입력하세요",
                 width="medium",
                 options=current_brand_pigments,
                 required=True
@@ -845,8 +897,10 @@ with tab_tuning:
                     [도료사 물리/화학 조색 5대 수칙 강제 적용]
                     1. 노루 WATER-Q: Q-7000(플롭조절제)이 10% 초과 필요시 반드시 고농도 백색 Q-7800/7900으로 대체 보정 처방할 것. Q-3550 메탈릭 금지, Q-7350 솔리드 금지 수칙 적용.
                     2. 시켄스 Optima/Autowave: Autowave MM 700(Flop Controller)은 배합 내 15% 이하 사용 엄격 제한(단독사용 금지). MM 600/666 수지 단독 사용 금지.
-                    3. Glasurit 90Line: 메탈릭/펄 안료 수직 배열 특성 반영 및 93-E3/E10 50% 희석비 계산.
-                    4. 실버 메탈릭: 입자 크기(소입자 Q-9260 / 대입자 Q-9760, Q-9890)별 정면/측면 명도 반전(Flop) 현상을 정밀 분석하여 추가 처방에 반영할 것.
+                    3. Glasurit 90Line: Abtöntabelle 정측면 보정 매트릭스 및 Multi-Effekt 수칙 적용. 93-E3/E10 50% 희석비 계산.
+                    4. 엑솔타 Hi-TEC 480: WT 385/387 컴포넌트, WT 386 Flop Control, 1-Visit (1.5 횟수도포) 공정 반영.
+                    5. R-M Onyx HD: Chromatic Color Wheel 수칙 적용. HB090 Flop Control 적용.
+                    6. PPG Envirobase: T403 Micro White 정측면 명도 반전 제어, T492 Adjuster (10%/20%/30%) 희석 수칙 적용.
                     
                     Delta E <= 0.5 판정 시 '[판정: 🎉 조색 완벽 합격 (Delta E <= 0.5)]' 명시.
                     아니면 '[판정: 🔺 미세 보정 필요]' 명시.
