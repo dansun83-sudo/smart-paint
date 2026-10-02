@@ -142,22 +142,33 @@ BRAND_CONFIGS = {
     },
     "Glasurit 90Line (Glasurit)": {
         "code_prefix": "90-Line 코드",
-        "regex_pattern": r"(90-[A-Za-z0-9\/]+)\s*[:\=\|\s]+([\d\.]+)\s*g?",
+        "regex_pattern": r"((?:90-[A-Za-z0-9\/]+|[A-Z]\d{2,3}[A-Z]*|M99\/\d{2}|M1))\s*[:\=\|\s]+([\d\.]+)\s*g?",
         "thinner_info": "93-E3 (표준) / 93-E10 (고온) 전용 희석제 50% 정확 혼합",
-        "special_rules": "Abtöntabelle 정측면 보정 매트릭스 및 Multi-Effekt 펄 이동 수칙 적용. 93-E3/E10 50% 희석비 엄수.",
-        "code_example": "90-M4: 70.0g, 90-A010: 15.0g",
+        "special_rules": "Abtöntabelle 정측면 보정 매트릭스 및 Multi-Effekt 펄 이동 수칙 적용. M1 Flop Control 입자 배향 제어. 93-E3/E10 50% 희석비 엄수.",
+        "code_example": "90-M4: 70.0g, A031: 15.0g, M1: 5.0g",
         "pigments": [
-            "90-A010 (화이트)", "90-A031 (은폐화이트)", "90-A032 (표준화이트)", "90-A035 (파인화이트)", 
-            "90-A100 (딥블랙)", "90-A105 (옐로우)", "90-A115 (브라이트옐로우)", "90-A136 (오렌지옐로우)", 
-            "90-A143 (황적색)", "90-A148 (그린옐로우)", "90-A155 (레몬옐로우)", "90-A177 (파스텔옐로우)", 
-            "90-A201 (오렌지)", "90-A306 (적색)", "90-A323 (선명적색)", "90-A329 (오렌지레드)", 
-            "90-A347 (크림슨레드)", "90-A349 (딥레드)", "90-A350 (마젠타레드)", "90-A352 (선명마젠타)", 
-            "90-A359 (바이올렛레드)", "90-A372 (비비드오렌지)", "90-A378 (딥마룬)", "90-A427 (딥바이올렛)", 
-            "90-A430 (바이올렛)", "90-A503 (시안블루)", "90-A527 (바이올렛블루)", "90-A531 (스카이블루)", 
-            "90-A532 (로열블루)", "90-A563 (딥블루)", "90-A589 (울트라마린블루)", "90-A640 (표준그린)", 
-            "90-A695 (황미그린)", "90-A696 (에메랄드그린)", "90-A924 (조색용블랙)", "90-A926 (딥블랙)", 
-            "90-A927 (제트블랙)", "90-A997 (고혹색도블랙)", "90-M1 (파인메탈)", "90-M4 (플롭제어메탈)", 
-            "90-M5 (코스메탈)", "90-M99/1 (화이트펄)", "90-M99/2 (블루펄)", "90-M99/3 (레드펄)"
+            "90-3A0 (Cherry Red Transp.)", "A031 (White Opaque)", "A032 (White Opaque)", "A035 (Snow White Opaque)", 
+            "A097 (Transparent White)", "A105 (Ochre Opaque)", "A115 (Yellow Transp.)", "A136 (Golden Ochre Transp.)", 
+            "A143 (Yellow Transp.)", "A148 (Lemon Gold Opaque)", "A149 (Lemon Yellow Opaque)", "A177 (Organic Yellow Opaque)", 
+            "A201 (Bright Orange Opaque)", "A306 (Red Iron Oxide Opaque)", "A307 (Red Opaque)", "A323 (High Strength Red Opaque)", 
+            "A329 (Red Transp.)", "A347 (Maroon Transp.)", "A349 (Red Transp.)", "A350 (Dark Red Transp.)", 
+            "A359 (Pink Transp.)", "A372 (Scarlet Orange Transp.)", "A378 (Red Transp.)", "A427 (Violet Transp.)", 
+            "A430 (Red Violet Transp.)", "A503 (Blue Transp.)", "A527 (Midnight Blue II Transp.)", "A528 (Blue Transp.)", 
+            "A563 (Green Shade Blue Transp.)", "A589 (Blue Transp.)", "A640 (Blue Green Transp.)", "A695 (Green Transp.)", 
+            "A924 (Factory Black Opaque)", "A926 (Black Opaque)", "A927 (Low Strength Black Opaque)", "A997 (Jet Black Opaque)", 
+            "E014 (Fine White Pearl 2)", "E025 (Sparkling Glass Transp.)", "E120 (Gold Glitter Sparkle)", "E220 (Orange Flash Pearl)", 
+            "E280 (Brilliant Bronze Opaque)", "E330 (Flash Red Pearl)", "E435 (Crystal Shimmer Green)", "E440 (Violet Pearl)", 
+            "E460 (Violet Shimmer)", "E480 (Violet Pearl Red)", "E520 (Blue Glitter Sparkle)", "E620 (Green Glitter Sparkle)", 
+            "E630 (Moss Green Pearl)", "E650 (Super Green Pearl)", "E660 (Turquoise Pearl)", "E680 (Green-Red Pearl)", 
+            "E820 (Bronze Pearl Copper)", "E830 (Copper Pearl)", "E850 (Copper Glitter Sparkle)", "E910 (Bright Brass Pearl)", 
+            "E920 (Flash Gold Aluminum)", "E921 (Flash Gold Aluminum)", "M1 (Flop Control)", "M010 (White Pearl)", 
+            "M011 (Fine White Pearl)", "M034K (Arctic White Opaque)", "M176 (Gold Pearl)", "M200K (Sun Orange Opaque)", 
+            "M319 (Radiant Red Sparkle)", "M320K (Fire Red Opaque)", "M351K (Magma Red Transp.)", "M363 (Red Pearl Russet)", 
+            "M364 (Fine Red Pearl Russet)", "M503K (Cobalt Blue Transp.)", "M505 (Blue Pearl)", "M506 (Fine Blue Pearl)", 
+            "M527K (Ultramarine Transp.)", "M589K (Jeans Blue Transp.)", "M640K (Spring Green Transp.)", "M696K (Olive Green Transp.)", 
+            "M919 (Crystal Silver Sparkle)", "M930 (Charcoal Black Opaque)", "M99/00 (Super Fine Aluminum)", "M99/01 (Extra Fine Aluminum)", 
+            "M99/02 (Fine Aluminum)", "M99/03 (Medium Aluminum)", "M99/04 (Large Aluminum)", "M99/23 (Coarse Crystal Silver)", 
+            "M99/24 (Fine Crystal Silver)"
         ]
     },
     "퍼마하이드 하이텍 (엑솔타/Spies Hecker)": {
@@ -218,15 +229,33 @@ BRAND_CONFIGS = {
         ]
     },
     "수믹스 (KCC/Sumix)": {
-        "code_prefix": "WT 코드",
-        "regex_pattern": r"(WT-\d{3,4})\s*[:\=\|\s]+([\d\.]+)\s*g?",
-        "thinner_info": "KCC 수믹스 전용 수성 희석제 규정비 준수",
-        "special_rules": "K9001/K9002 전용 수지 바인더 혼합 및 WT-600 플롭제어제 정밀 투입.",
-        "code_example": "WT-101: 50.0g, WT-202: 25.0g",
+        "code_prefix": "WT / K-코드",
+        "regex_pattern": r"(K\d{3,4}|WT-\d{3,4})\s*[:\=\|\s]+([\d\.]+)\s*g?",
+        "thinner_info": "KCC 수믹스 전용 수성 희석제 규정비 준수 (K9001/K9002/WT-100)",
+        "special_rules": "K100 표준백색 메탈릭 혼합 금지. K101 저농도 백색 5% 이내 사용 제한. K102 정어둡/측밝 측면 보정용. K807 스파클링 실버 탁함 주의.",
+        "code_example": "K100: 40.0g, K803: 30.0g, K902: 10.0g",
         "pigments": [
-            "K9001 (수믹스기본수지)", "K9002 (Baseclear수지)", "WT-100 (수성바인더)", "WT-101 (순백색)", 
-            "WT-200 (검정색)", "WT-202 (청순색)", "WT-300 (파인알루미늄)", "WT-303 (코스알루미늄)", 
-            "WT-400 (황색)", "WT-404 (적색)", "WT-500 (화이트펄)", "WT-505 (블루펄)", "WT-600 (플롭조절제)"
+            "K100 (표준백색-순백솔리드)", "K101 (저농도백색-측면밝기5%이내)", "K102 (측면조절용백색-정어둡측밝)", "K200 (적색감청색)", 
+            "K202 (녹색감청색)", "K203 (정적측녹청색)", "K204 (정녹측적청색)", "K205 (저농도청색-K204)", 
+            "K300 (녹청색감녹색)", "K301 (저농도녹색-K300)", "K302 (녹황색감녹색)", "K400 (어두운녹황색)", 
+            "K401 (밝은녹황색)", "K402 (솔리드황색)", "K403 (메탈릭황색-측면황녹)", "K404 (솔리드적황색)", 
+            "K405 (솔리드황토색)", "K406 (저농도황색-K405)", "K407 (메탈릭황색-측면적감)", "K409 (솔리드황색)", 
+            "K500 (밝은오렌지)", "K600 (보라적색)", "K601 (고은폐적색)", "K603 (밝은자홍적색)", 
+            "K604 (최고밝은자홍적색)", "K605 (어두운자홍적색)", "K607 (황적색)", "K608 (은폐적색)", 
+            "K609 (골드적색)", "K610 (어두운적황색)", "K611 (솔리드어두운적황색)", "K612 (핑크자홍적색)", 
+            "K614 (밝은적색)", "K615 (적갈색)", "K616 (저농도적색-K608)", "K660 (고채도레드메탈릭)", 
+            "K700 (표준흑색)", "K701 (저농도흑색-K700)", "K702 (고흑도황색감흑색)", "K703 (청색감흑색)", 
+            "K800 (작은입자실버)", "K801 (가장작은입자실버)", "K802 (소입자실버)", "K803 (중간입자스파클링실버)", 
+            "K804 (중간입자측면밝은실버)", "K805 (중간입자실버)", "K807 (최고스파클링큰입자실버)", "K808 (골드메탈릭실버)", 
+            "K810 (최소입자실버)", "K814 (중간입자스파클링실버)", "K816 (최고정면밝은큰입자실버)", "K900 (최소화이트펄)", 
+            "K901 (소입자화이트펄)", "K902 (중입자화이트펄)", "K903 (대입자화이트펄스파클링)", "K904 (소입자블루펄)", 
+            "K905 (중입자블루착색펄)", "K906 (중입자블루펄)", "K907 (소입자바이올렛펄)", "K908 (대입자바이올렛펄스파클링)", 
+            "K909 (소입자레드착색펄)", "K910 (중입자레드펄-흑바탕녹색)", "K911 (중입자레드착색펄)", "K912 (대입자레드착색펄스파클링)", 
+            "K913 (중입자그린펄)", "K914 (중입자골드펄)", "K915 (대입자골드착색펄스파클링)", "K916 (중입자그린착색펄)", 
+            "K917 (중입자오렌지착색펄)", "K918 (대입자블루펄스파클링)", "K919 (대입자그린펄스파클링)", "K920 (대입자오렌지착색펄스파클링)", 
+            "K921 (대입자그린펄-각도변화)", "K922 (중입자레드착색펄-고채도)", "K923 (중입자블랙펄)", "K924 (소입자블루펄스파클링)", 
+            "K925 (소입자그린펄)", "K926 (최대입자화이트펄스파클링)", "K927 (중입자레드펄)", "K990 (카멜레온펄-정녹/측보라)", 
+            "K9001 (수믹스기본수지)", "K9002 (Baseclear수지)", "WT-100 (수성바인더)"
         ]
     },
     "엔바이로베이스 (PPG/Envirobase)": {
@@ -857,7 +886,7 @@ with tab_tuning:
                         st.rerun()
                     else: st.warning("인식 실패. 아래 표에서 직접 선택해 주세요.")
 
-    st.write(f"📋 **{current_brand} 확정 배합표 (표 안료 코드 셀을 클릭한 뒤 번호(예: 7, W110, WT 321)를 입력하면 연관 안료가 정렬됩니다):**")
+    st.write(f"📋 **{current_brand} 확정 배합표 (표 안료 코드 셀을 클릭한 뒤 번호(예: 7, W110, A031, K100)를 입력하면 연관 안료가 정렬됩니다):**")
     
     current_brand_pigments = list(BRAND_CONFIGS[current_brand].get("pigments", []))
     existing_codes = st.session_state.recipe_table_df["안료 코드"].dropna().unique().tolist()
@@ -873,7 +902,7 @@ with tab_tuning:
         column_config={
             "안료 코드": st.column_config.SelectboxColumn(
                 "안료 코드",
-                help="셀 클릭 후 안료 번호(예: 7, W110, WT 321)를 입력하세요",
+                help="셀 클릭 후 안료 번호(예: 7, W110, A031, K100)를 입력하세요",
                 width="medium",
                 options=current_brand_pigments,
                 required=True
@@ -919,13 +948,14 @@ with tab_tuning:
                     - 브랜드 특수 조색 수칙: {BRAND_CONFIGS[current_brand]['special_rules']}
                     {rag}
                     
-                    [도료사 물리/화학 조색 6대 수칙 강제 적용]
-                    1. 노루 WATER-Q: Q-7000(플롭조절제)이 10% 초과 필요시 반드시 고농도 백색 Q-7800/7900으로 대체 보정 처방할 것. Q-3550 메탈릭 금지, Q-7350 솔리드 금지 수칙 적용.
-                    2. 시켄스 Optima/Autowave: W110이 20%를 초과할 경우 고농축 W120으로 필수 전환 보정. 저농도 Z1070 (Z160 1g=Z1070 16.67g), Y4050/Y4060 저농도 환산비 반영. SE8SA 크롬 이펙트는 2K 블랙 탑코트/Z147/WoW 프라이머 위 고압 초박막 분사 수칙 반영. C070 Flop Controller 배향 제어 적용.
-                    3. Glasurit 90Line: Abtöntabelle 정측면 보정 매트릭스 및 Multi-Effekt 수칙 적용. 93-E3/E10 50% 희석비 계산.
-                    4. 엑솔타 Hi-TEC 480: WT 385/387 컴포넌트, WT 386 Flop Control, 1-Visit (1.5 횟수도포) 공정 반영.
-                    5. R-M Onyx HD: Chromatic Color Wheel 수칙 적용. HB090 Flop Control 적용.
-                    6. PPG Envirobase: T403 Micro White 정측면 명도 반전 제어, T492 Adjuster (10%/20%/30%) 희석 수칙 적용.
+                    [도료사 물리/화학 조색 핵심 수칙 강제 적용]
+                    1. 노루 WATER-Q: Q-7000(플롭조절제) 10% 초과 시 Q-7800/7900 고은폐 백색 필수 대체. Q-3550 메탈릭 금지, Q-7350 솔리드 금지.
+                    2. 시켄스 Optima/Autowave: W110 20% 초과 시 고농축 W120 전환. 저농도 Z1070 (Z160 1g=Z1070 16.67g), Y4050/Y4060 환산. SE8SA 크롬 초박막 도포. C070 Flop Control 배향 제어.
+                    3. Glasurit 90Line: Abtöntabelle 정측면 보정 매트릭스 및 Multi-Effekt 펄 수칙. M1 Flop Control 입자 배향 제어. 93-E3/E10 50% 희석비 계산.
+                    4. KCC Sumix WT: K100 표준백색 메탈릭 혼합 금지(입자감 상실). K101 저농도 백색 5% 이내 제한. K102 측면 조절용(정어둡/측밝). K807 스파클링 실버 탁함 주의.
+                    5. 엑솔타 Hi-TEC 480: WT 385/387 컴포넌트, WT 386 Flop Control, 1-Visit (1.5 횟수도포) 공정 반영.
+                    6. R-M Onyx HD: Chromatic Color Wheel 수칙 적용. HB090 Flop Control 적용.
+                    7. PPG Envirobase: T403 Micro White 정측면 명도 반전 제어, T492 Adjuster (10%/20%/30%) 희석 수칙 적용.
                     
                     Delta E <= 0.5 판정 시 '[판정: 🎉 조색 완벽 합격 (Delta E <= 0.5)]' 명시.
                     아니면 '[판정: 🔺 미세 보정 필요]' 명시.
