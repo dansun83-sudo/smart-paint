@@ -77,11 +77,49 @@ BRAND_CONFIGS = {
             "Q-9880 (큰입자스파클링실버)", "Q-9890 (최대입자스파클링실버)"
         ]
     },
+    "시켄스 오토웨이브 옵티마 (노루/Sikkens Optima)": {
+        "code_prefix": "Optima 토너 코드",
+        "regex_pattern": r"([W|Z|Y|V|B|G|R|O|M|P|C|S][A-Za-z0-9\-]+)\s*[:\=\|\s]+([\d\.]+)\s*g?",
+        "thinner_info": "표준 희석제 10% ~ 15% 정확 혼합 준수 (C063/C070/C100 수칙)",
+        "special_rules": "W110 20% 초과 시 고농축 W120 전환. Z1070 저농도 환산(Z160 1g=Z1070 16.67g). Y4050/Y4060/B6020/G5030/R2040 저농도 환산비 적용. SE8SA 크롬 이펙트 초박막 도포.",
+        "code_example": "W110: 80.0g, C070: 10.0g, M85B: 10.0g",
+        "pigments": [
+            "C063 (Converter)", "C070 (Flop Controller)", "C100 (3-Coat Midcoat Binder)", 
+            "W101 (White Transp.)", "W110 (White Standard)", "W120 (White High Strength)", 
+            "Z1070 (Mixing Black-Low)", "Z145 (Deep Black)", "Z147 (Deep Black Effect)", "Z160 (Mixing Black)", 
+            "Y4050 (Low Yellow-Y437)", "Y4060 (Low Yellow-Y455)", "Y432 (Green Yellow Transp.)", 
+            "Y435 (Bright Yellow Solid)", "Y436 (Yellow Orange Transp.)", "Y437 (Yellow Orange Solid)", 
+            "Y438 (Yellow Solid)", "Y439 (Yellow Metallic Transp.)", "Y455 (Yellow Solid)", 
+            "V725 (Red Violet Transp.)", "V726 (Red Violet Solid)", "V727 (Red Violet Solid Transp.)", "V766 (Blue Violet Transp.)", 
+            "B6020 (Low Blue-B673)", "B652 (Blue Green Transp.)", "B671 (Blue Green Transp.)", 
+            "B673 (Blue Violet Transp.)", "B679 (Blue Violet Transp.)", "G5030 (Low Green-G550)", 
+            "G550 (Green Yellow Transp.)", "G564 (Green Blue Transp.)", "O325 (Orange Red Transp.)", 
+            "R2040 (Low Red-R239)", "R231 (Red Orange Solid)", "R233 (Orange Red Metallic)", 
+            "R235 (Red Orange Transp.)", "R237 (Red Orange Transp.)", "R239 (Red Orange Solid/Met)", "R271 (Red Violet Transp.)", 
+            "M85B (Metallic Fine Bright)", "M85E (Metallic Fine)", "M85F (SEC Fine Metallic)", 
+            "M85J (Metallic Sparkle)", "M85M (Metallic Sparkle Coarse)", "M85P (Metallic Coarse)", "M85R (Metallic Extra Coarse)", 
+            "M88H (Yellow Metallic)", "SE60A (SEC Orange Aluminum)", "SE6RA (SEC Red Aluminum)", 
+            "SE6RT (SEC UF Red to Violet)", "SE6VT (SEC UF Violet to Red)", "SE6VX (SEC Violet to Red XF)", 
+            "SE7BA (SEC Blue to Red)", "SE7BB (SEC Cyan to Purple)", "SE7GA (SEC Green to Purple)", 
+            "SE7RA (SEC Red to Gold)", "SE7RB (SEC Magenta to Gold)", "SE7WA (SEC Silver to Green)", 
+            "SE7YA (SEC Gold to Silver)", "SE8NB (SEC Orange Metallic)", "SE8NC (SEC Coarse Sparkle Silver)", 
+            "SE8ND (SEC Blue Metallic)", "SE8NF (SEC Fine Sparkle Silver)", "SE8NM (SEC Medium Sparkle Silver)", 
+            "SE8SA (Silver Argentum Chrome)", "SE9NA (SEC Lilac to Blue)", "SE9NB (Autumn Mystery)", 
+            "SE9NC (SEC Green to Orange)", "SE9ND (SEC Lilac Sparkle)", "SE9NE (SEC Green Sparkle)", 
+            "SE9NF (SEC Red Sparkle)", "SE9NG (SEC Turquoise to Gold)", "SE9NH (SEC Blue Sparkle)", "SE9NJ (Lapis Sunlight)", 
+            "P11H (White Sparkle)", "P11M (White Pearl)", "P14C (White Pearl Extra Fine)", "P14F (White Pearl Fine)", 
+            "P198 (Graphite)", "P22F (Red Pearl Fine)", "P22M (Red Pearl)", "P23H (Red Sparkle)", 
+            "P25M (Red Violet Pearl)", "P33F (Copper Pearl Fine)", "P33M (Copper Pearl)", "P41F (Yellow Pearl Fine)", 
+            "P41H (Yellow Sparkle)", "P41M (Yellow Pearl)", "P51F (Green Pearl Fine)", "P53M (Green Blue Pearl)", 
+            "P54G (Green Blue Pearl)", "P54M (Green Pearl)", "P54S (Green Pearl Coarse)", "P61H (Blue Sparkle)", 
+            "P64H (Blue Pearl Fine)", "P64R (Blue Pearl)", "P75S (Violet Blue Pearl)"
+        ]
+    },
     "시켄스 오토웨이브 2.0 (노루/Sikkens)": {
         "code_prefix": "MM 코드",
         "regex_pattern": r"(MM\s*\d{2,4}[A-Za-z]*)\s*[:\=\|\s]+([\d\.]+)\s*g?",
         "thinner_info": "Autowave 전용 수성 희석제 10~15% 혼합 및 에어 블로우 건조 수칙 준수",
-        "special_rules": "MM 700(Flop Controller)은 배합 내 15% 이하 사용 엄격 제한(단독사용 금지). MM 600/MM 666 수지 단독 사용 금지.",
+        "special_rules": "MM 700(Flop Controller)은 배합 내 15% 이하 사용 엄격 제한(단독사용 금지). MM 600/666 수지 단독 사용 금지.",
         "code_example": "MM 800DF: 60.0g, MM 400: 20.0g",
         "pigments": [
             "MM 00 (화이트-비투과형)", "MM 098 (고농화이트-솔리드전용)", "MM 1001 (BLACK ED-저농)", "MM 1002 (BLUE ED-저농)", 
@@ -100,19 +138,6 @@ BRAND_CONFIGS = {
             "MM 744 (Mixing Black-조색용)", "MM 800MS (가장작은입자실버)", "MM 800C (작은입자실버)", "MM 800DF (중간입자실버-달러타입)", 
             "MM 800DC (큰입자실버-달러타입)", "MM 800CC (큰입자실버)", "MM 800EC (가장큰입자실버)", "MM 800YA (골드실버)", 
             "MM 952 (오렌지-투과형)", "MM 954 (바이올렛-투과형)", "MM 971 (바이올렛-투과형)", "MM 974 (오렌지-투과형)", "MM 980 (블루-투과형)"
-        ]
-    },
-    "시켄스 옵티마 (노루/Sikkens Optima)": {
-        "code_prefix": "WB 코드",
-        "regex_pattern": r"(WB\s*\d{2,3}[A-Za-z]*)\s*[:\=\|\s]+([\d\.]+)\s*g?",
-        "thinner_info": "★ 표준희석제 10% ~ 15% 희석 비율 필히 준수",
-        "special_rules": "시켄스 옵티마 하이솔리드 특성 고려, 표준희석제 10~15% 혼합 후 점도 측정 교반.",
-        "code_example": "WB 334AB: 80.0g, WB 00: 20.0g",
-        "pigments": [
-            "WB 00 (수성바인더)", "WB 110 (화이트)", "WB 120 (딥블랙)", "WB 220 (메탈릭파인)", 
-            "WB 300 (메탈릭미디엄)", "WB 334 (메탈릭코스)", "WB 334AB (하이플롭메탈릭)", 
-            "WB 400 (블루)", "WB 500 (그린)", "WB 600 (옐로우)", "WB 700 (레드)", 
-            "WB 800 (화이트펄)", "WB 900 (간섭펄)", "WB 990 (플롭조절제)"
         ]
     },
     "Glasurit 90Line (Glasurit)": {
@@ -832,7 +857,7 @@ with tab_tuning:
                         st.rerun()
                     else: st.warning("인식 실패. 아래 표에서 직접 선택해 주세요.")
 
-    st.write(f"📋 **{current_brand} 확정 배합표 (표 안료 코드 셀을 클릭한 뒤 번호(예: 7, WT 321)를 입력하면 연관 안료가 정렬됩니다):**")
+    st.write(f"📋 **{current_brand} 확정 배합표 (표 안료 코드 셀을 클릭한 뒤 번호(예: 7, W110, WT 321)를 입력하면 연관 안료가 정렬됩니다):**")
     
     current_brand_pigments = list(BRAND_CONFIGS[current_brand].get("pigments", []))
     existing_codes = st.session_state.recipe_table_df["안료 코드"].dropna().unique().tolist()
@@ -848,7 +873,7 @@ with tab_tuning:
         column_config={
             "안료 코드": st.column_config.SelectboxColumn(
                 "안료 코드",
-                help="셀 클릭 후 안료 번호(예: 7, 7800, WT 321)를 입력하세요",
+                help="셀 클릭 후 안료 번호(예: 7, W110, WT 321)를 입력하세요",
                 width="medium",
                 options=current_brand_pigments,
                 required=True
@@ -894,9 +919,9 @@ with tab_tuning:
                     - 브랜드 특수 조색 수칙: {BRAND_CONFIGS[current_brand]['special_rules']}
                     {rag}
                     
-                    [도료사 물리/화학 조색 5대 수칙 강제 적용]
+                    [도료사 물리/화학 조색 6대 수칙 강제 적용]
                     1. 노루 WATER-Q: Q-7000(플롭조절제)이 10% 초과 필요시 반드시 고농도 백색 Q-7800/7900으로 대체 보정 처방할 것. Q-3550 메탈릭 금지, Q-7350 솔리드 금지 수칙 적용.
-                    2. 시켄스 Optima/Autowave: Autowave MM 700(Flop Controller)은 배합 내 15% 이하 사용 엄격 제한(단독사용 금지). MM 600/666 수지 단독 사용 금지.
+                    2. 시켄스 Optima/Autowave: W110이 20%를 초과할 경우 고농축 W120으로 필수 전환 보정. 저농도 Z1070 (Z160 1g=Z1070 16.67g), Y4050/Y4060 저농도 환산비 반영. SE8SA 크롬 이펙트는 2K 블랙 탑코트/Z147/WoW 프라이머 위 고압 초박막 분사 수칙 반영. C070 Flop Controller 배향 제어 적용.
                     3. Glasurit 90Line: Abtöntabelle 정측면 보정 매트릭스 및 Multi-Effekt 수칙 적용. 93-E3/E10 50% 희석비 계산.
                     4. 엑솔타 Hi-TEC 480: WT 385/387 컴포넌트, WT 386 Flop Control, 1-Visit (1.5 횟수도포) 공정 반영.
                     5. R-M Onyx HD: Chromatic Color Wheel 수칙 적용. HB090 Flop Control 적용.
