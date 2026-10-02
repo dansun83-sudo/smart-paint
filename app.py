@@ -831,14 +831,14 @@ with tab_tuning:
     
     with col_t1:
         st.write("1. 목표 차체/판넬 사진 (Target)")
-        st.markdown("""<div class="distance-guide-box"><b>📏 15cm 거리 촬영</b> <br>💡 <b>팁</b>: 모바일은 [📷 앱 내 직접 촬영]에서 <b>(🔄)버튼</b>을 누르거나 [📁 갤러리 / 후면 카메라] 탭을 이용하세요.</div>""", unsafe_allow_html=True)
+        st.markdown("""<div class="distance-guide-box"><b>📏 15cm 거리 촬영</b> <br>💡 <b>안내</b>: 실시간 촬영은 [📷 앱 내 직접 촬영]을, 스마트폰 사진첩의 기존 사진은 [📁 사진첩 (갤러리)]를 이용하세요.</div>""", unsafe_allow_html=True)
         if st.session_state.target_img_bytes is None:
-            t_tab1, t_tab2 = st.tabs(["📷 앱 내 직접 촬영", "📁 갤러리 / 후면 카메라"])
+            t_tab1, t_tab2 = st.tabs(["📷 앱 내 직접 촬영", "📁 사진첩 (갤러리)"])
             with t_tab1:
                 cam = st.camera_input("목표 차체 촬영", key="cam_target")
                 if cam: st.session_state.target_img_bytes = cam.getvalue(); st.rerun()
             with t_tab2:
-                up = st.file_uploader("목표 차체 파일", type=["jpg", "png", "jpeg"], key="file_target")
+                up = st.file_uploader("사진첩/갤러리에서 선택", type=["jpg", "png", "jpeg"], key="file_target")
                 if up: st.session_state.target_img_bytes = up.getvalue(); st.rerun()
         else:
             st.image(load_and_resize(st.session_state.target_img_bytes), caption=f"🎯 목표 [{st.session_state.color_name}] - [{current_camera}]", use_container_width=True)
@@ -846,13 +846,13 @@ with tab_tuning:
 
     with col_t2:
         st.write(f"2. {stage_code} 도장 시편 사진 (Sample)")
-        st.markdown("""<div class="distance-guide-box"><b>📏 15cm 거리 촬영</b> <br>💡 <b>팁</b>: 모바일은 [📷 앱 내 직접 촬영]에서 <b>(🔄)버튼</b>을 누르거나 [📁 갤러리 / 후면 카메라] 탭을 이용하세요.</div>""", unsafe_allow_html=True)
-        s_tab1, s_tab2 = st.tabs(["📷 앱 내 직접 촬영", "📁 갤러리 / 후면 카메라"])
+        st.markdown("""<div class="distance-guide-box"><b>📏 15cm 거리 촬영</b> <br>💡 <b>안내</b>: 실시간 촬영은 [📷 앱 내 직접 촬영]을, 스마트폰 사진첩의 기존 사진은 [📁 사진첩 (갤러리)]를 이용하세요.</div>""", unsafe_allow_html=True)
+        s_tab1, s_tab2 = st.tabs(["📷 앱 내 직접 촬영", "📁 사진첩 (갤러리)"])
         with s_tab1:
             cam_s = st.camera_input(f"{stage_code} 시편 촬영", key=f"cam_sample_{current_stage}")
             if cam_s: st.session_state.temp_sample_bytes = cam_s.getvalue()
         with s_tab2:
-            up_s = st.file_uploader(f"{stage_code} 시편 파일", type=["jpg", "png", "jpeg"], key=f"file_sample_{current_stage}")
+            up_s = st.file_uploader("사진첩/갤러리에서 선택", type=["jpg", "png", "jpeg"], key=f"file_sample_{current_stage}")
             if up_s: st.session_state.temp_sample_bytes = up_s.getvalue()
         if st.session_state.temp_sample_bytes:
             st.image(load_and_resize(st.session_state.temp_sample_bytes), caption=f"🧪 {stage_code} 시편 - [{current_camera}]", use_container_width=True)
@@ -1045,13 +1045,13 @@ with tab_defect:
     st.subheader(f"🔍 [{current_brand}] 도장 결함 원인 분석 및 재작업 가이드")
     col1, col2 = st.columns(2)
     with col1:
-        d_tab1, d_tab2 = st.tabs(["📷 카메라", "📁 갤러리"])
+        d_tab1, d_tab2 = st.tabs(["📷 카메라", "📁 사진첩 (갤러리)"])
         def_img = None
         with d_tab1:
             cam_d = st.camera_input("촬영", key="cam_def")
             if cam_d: def_img = cam_d.getvalue()
         with d_tab2:
-            up_d = st.file_uploader("파일 선택", type=["jpg", "png"], key="file_def")
+            up_d = st.file_uploader("사진 선택", type=["jpg", "png"], key="file_def")
             if up_d: def_img = up_d.getvalue()
         if def_img: st.image(load_and_resize(def_img), use_container_width=True)
     with col2:
