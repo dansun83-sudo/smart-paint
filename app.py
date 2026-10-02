@@ -350,32 +350,38 @@ def reset_workspace():
     for k in keys_to_delete:
         del st.session_state[k]
 
-# ★ CSS: 상단 헤더 투명화 제거 및 사이드바 버튼(>) 확실한 스타일링 적용 ★
+# ★ CSS: 안전한 순정 헤더 보존 및 사이드바 버튼(>) 스타일 지정 ★
 st.markdown("""<style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     html, body, [class*="css"] { font-family: 'Pretendard', -apple-system, sans-serif; }
     
-    #MainMenu {visibility: hidden !important; display: none !important;}
-    footer {visibility: hidden !important; display: none !important;}
-    [data-testid="stToolbar"] {display: none !important;}
-    .stAppDeployButton {display: none !important;}
-    [class*="viewerBadge"] {display: none !important;}
-    iframe {display: none !important;}
+    footer { visibility: hidden !important; display: none !important; }
+    .stAppDeployButton { display: none !important; }
+    div[data-testid="stDecoration"] { display: none !important; }
+    [class*="viewerBadge"] { display: none !important; }
+    iframe { display: none !important; }
 
-    /* ★ 사이드바 열기/닫기 토글 버튼(>) 선명한 파란색 사각형 스타일 ★ */
+    /* ★ 사이드바 버튼 영역의 가시성을 확실하게 확보 ★ */
     [data-testid="stSidebarCollapsedControl"],
-    [data-testid="stSidebarExpandControl"],
-    button[aria-label*="sidebar"],
-    button[aria-label*="Sidebar"] {
-        display: flex !important;
+    [data-testid="stSidebarExpandControl"] {
+        display: block !important;
         visibility: visible !important;
-        opacity: 1 !important;
-        z-index: 9999999 !important;
+        z-index: 999999 !important;
+    }
+    
+    [data-testid="stSidebarCollapsedControl"] button,
+    [data-testid="stSidebarExpandControl"] button {
         background-color: #003375 !important;
         color: #FFFFFF !important;
         border: 2px solid #82B1FF !important;
         border-radius: 8px !important;
         box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+    }
+    
+    [data-testid="stSidebarCollapsedControl"] button svg,
+    [data-testid="stSidebarExpandControl"] button svg {
+        fill: #FFFFFF !important;
+        color: #FFFFFF !important;
     }
 
     .noroo-header-box {
@@ -515,7 +521,7 @@ def db_delete_work(history_id):
         except Exception: pass
 
 # ----------------------------------------------------
-# 5. 좌측 사이드바 (단일 동기화)
+# 5. 좌측 사이드바 (완벽한 단일 세션 상태 동기화)
 # ----------------------------------------------------
 with st.sidebar:
     st.markdown(f"👤 **접속 계정**: `{st.session_state.current_user}`")
@@ -698,7 +704,7 @@ with tab_tuning:
     st.markdown("---")
     
     # ----------------------------------------------------
-    # 3. 배합 레시피 작성 (★ 셀 클릭 시 번호 검색 지원 ★)
+    # 3. 배합 레시피 작성 (셀 클릭 시 번호 검색 지원)
     # ----------------------------------------------------
     st.subheader(f"3. {prev_stage_code if not is_stage_1 else '1차 기본'} 배합 레시피 ({current_brand})")
     
